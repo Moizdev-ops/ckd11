@@ -1,0 +1,23 @@
+name: CustomKitDuels
+version: 1.0.0
+main: com.yourname.customkitduels.CustomKitDuels
+api-version: 1.21
+author: YourName
+description: Custom kit dueling plugin for Minecraft 1.21.4
+
+commands:
+  ckd:
+    description: Main command for CustomKitDuels
+    usage: /<command> [subcommand]
+    permission: customkitduels.use
+    permission-message: You don't have permission to use this command.
+
+permissions:
+  customkitduels.use:
+    description: Allows basic use of CustomKitDuels
+    default: true
+  customkitduels.admin:
+    description: Allows admin commands for CustomKitDuels
+    default: op
+    children:
+      - customkitduels.use

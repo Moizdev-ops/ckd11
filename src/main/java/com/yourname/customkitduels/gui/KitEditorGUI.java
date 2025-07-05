@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -29,6 +30,7 @@ public class KitEditorGUI implements Listener {
     private final ItemStack[] kitArmor;
     private ItemStack offhandItem;
     private static final Map<UUID, KitEditorGUI> activeGuis = new HashMap<>();
+    private boolean isActive = true;
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
         this.plugin = plugin;
@@ -39,9 +41,12 @@ public class KitEditorGUI implements Listener {
         this.kitArmor = new ItemStack[4];
         this.offhandItem = null;
         
+        plugin.getLogger().info("[DEBUG] Creating KitEditorGUI for player " + player.getName() + " with kit " + kitName);
+        
         // Load existing kit if editing
         Kit existingKit = plugin.getKitManager().getKit(player.getUniqueId(), kitName);
         if (existingKit != null) {
+            plugin.getLogger().info("[DEBUG] Loading existing kit data for " + kitName);
             System.arraycopy(existingKit.getContents(), 0, kitContents, 0, Math.min(existingKit.getContents().length, 36));
             System.arraycopy(existingKit.getArmor(), 0, kitArmor, 0, 4);
             // Load offhand if available (stored in slot 36 of contents array)
@@ -55,6 +60,8 @@ public class KitEditorGUI implements Listener {
     }
     
     private void setupGUI() {
+        plugin.getLogger().info("[DEBUG] Setting up GUI for " + player.getName());
+        
         // Clear GUI first
         gui.clear();
         
@@ -121,44 +128,66 @@ public class KitEditorGUI implements Listener {
         clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to clear all slots"));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
+        
+        plugin.getLogger().info("[DEBUG] GUI setup complete for " + player.getName());
     }
     
     public void open() {
+        plugin.getLogger().info("[DEBUG] Opening KitEditorGUI for " + player.getName());
+        
+        // Clean up any existing GUI for this player
+        KitEditorGUI existing = activeGuis.get(player.getUniqueId());
+        if (existing != null && existing != this) {
+            plugin.getLogger().info("[DEBUG] Cleaning up existing GUI for " + player.getName());
+            existing.forceCleanup();
+        }
+        
         activeGuis.put(player.getUniqueId(), this);
+        isActive = true;
         player.openInventory(gui);
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui)) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
             return;
         }
         
         event.setCancelled(true);
         int slot = event.getSlot();
         
+        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
+        
         // Handle control buttons
         if (slot == 45) { // Save button
+            plugin.getLogger().info("[DEBUG] Save button clicked by " + player.getName());
             saveKit();
             return;
         }
         
         if (slot == 53) { // Cancel button
-            cleanup();
+            plugin.getLogger().info("[DEBUG] Cancel button clicked by " + player.getName());
+            forceCleanup();
             player.closeInventory();
             return;
         }
         
         if (slot == 49) { // Clear button
+            plugin.getLogger().info("[DEBUG] Clear button clicked by " + player.getName());
             clearAllSlots();
             return;
         }
         
         // Handle slot selection (0-40: main inventory, armor, and offhand)
         if (slot <= 40) {
+            plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening category selector");
+            
+            // Temporarily deactivate this GUI
+            isActive = false;
+            
             // Open category selector for this slot
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 new CategorySelectorGUI(plugin, player, this, slot).open();
@@ -166,28 +195,35 @@ public class KitEditorGUI implements Listener {
         }
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
+            plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            
             // Only cleanup if this is a final close (not a temporary one for navigation)
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (!player.getOpenInventory().getTopInventory().equals(gui)) {
-                    cleanup();
+                if (isActive && !player.getOpenInventory().getTopInventory().equals(gui)) {
+                    plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
+                    forceCleanup();
                 }
-            }, 2L);
+            }, 3L);
         }
     }
     
-    private void cleanup() {
+    private void forceCleanup() {
+        plugin.getLogger().info("[DEBUG] Force cleanup for " + player.getName());
+        isActive = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
     }
     
     public void setSlotItem(int slot, ItemStack item) {
+        plugin.getLogger().info("[DEBUG] Setting slot " + slot + " to item " + (item != null ? item.getType() : "null") + " for " + player.getName());
+        
         if (slot < 36) {
             kitContents[slot] = item;
         } else if (slot < 40) {
@@ -195,14 +231,18 @@ public class KitEditorGUI implements Listener {
         } else if (slot == 40) {
             offhandItem = item;
         }
-        setupGUI(); // Refresh the entire GUI
+        
+        // Refresh the GUI
+        setupGUI();
     }
     
     public void clearSlot(int slot) {
+        plugin.getLogger().info("[DEBUG] Clearing slot " + slot + " for " + player.getName());
         setSlotItem(slot, null);
     }
     
     private void clearAllSlots() {
+        plugin.getLogger().info("[DEBUG] Clearing all slots for " + player.getName());
         for (int i = 0; i < 36; i++) {
             kitContents[i] = null;
         }
@@ -215,6 +255,8 @@ public class KitEditorGUI implements Listener {
     }
     
     private void saveKit() {
+        plugin.getLogger().info("[DEBUG] Saving kit " + kitName + " for " + player.getName());
+        
         // Create extended contents array to include offhand
         ItemStack[] extendedContents = new ItemStack[37];
         System.arraycopy(kitContents, 0, extendedContents, 0, 36);
@@ -224,7 +266,7 @@ public class KitEditorGUI implements Listener {
         plugin.getKitManager().saveKit(player.getUniqueId(), kit);
         
         player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' saved successfully!");
-        cleanup();
+        forceCleanup();
         player.closeInventory();
     }
     
@@ -233,9 +275,21 @@ public class KitEditorGUI implements Listener {
     }
     
     public void refreshAndReopen() {
+        plugin.getLogger().info("[DEBUG] Refreshing and reopening GUI for " + player.getName());
+        
+        // Reactivate this GUI
+        isActive = true;
+        
+        // Refresh the GUI content
         setupGUI();
+        
+        // Reopen if not already open
         if (!player.getOpenInventory().getTopInventory().equals(gui)) {
             player.openInventory(gui);
         }
+    }
+    
+    public boolean isActive() {
+        return isActive;
     }
 }

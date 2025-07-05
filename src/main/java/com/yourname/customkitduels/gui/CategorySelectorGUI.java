@@ -6,6 +6,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -26,6 +27,7 @@ public class CategorySelectorGUI implements Listener {
     private final int targetSlot;
     private final Inventory gui;
     private static final Map<UUID, CategorySelectorGUI> activeGuis = new HashMap<>();
+    private boolean isActive = true;
     
     public CategorySelectorGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot) {
         this.plugin = plugin;
@@ -33,6 +35,8 @@ public class CategorySelectorGUI implements Listener {
         this.parentGUI = parentGUI;
         this.targetSlot = targetSlot;
         this.gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Category");
+        
+        plugin.getLogger().info("[DEBUG] Creating CategorySelectorGUI for player " + player.getName() + " slot " + targetSlot);
         
         setupGUI();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -121,21 +125,36 @@ public class CategorySelectorGUI implements Listener {
     }
     
     public void open() {
+        plugin.getLogger().info("[DEBUG] Opening CategorySelectorGUI for " + player.getName());
+        
+        // Clean up any existing category GUI for this player
+        CategorySelectorGUI existing = activeGuis.get(player.getUniqueId());
+        if (existing != null && existing != this) {
+            plugin.getLogger().info("[DEBUG] Cleaning up existing CategorySelectorGUI for " + player.getName());
+            existing.forceCleanup();
+        }
+        
         activeGuis.put(player.getUniqueId(), this);
+        isActive = true;
         player.openInventory(gui);
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui)) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
             return;
         }
         
         event.setCancelled(true);
         int slot = event.getSlot();
+        
+        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
+        
+        // Deactivate immediately to prevent double-clicks
+        isActive = false;
         
         switch (slot) {
             case 10: // Weapons
@@ -163,49 +182,62 @@ public class CategorySelectorGUI implements Listener {
                 openItemSelector(ItemCategory.MISC);
                 break;
             case 21: // Clear slot
+                plugin.getLogger().info("[DEBUG] Clear slot clicked for slot " + targetSlot);
                 parentGUI.clearSlot(targetSlot);
                 returnToParent();
                 break;
             case 22: // Back
+                plugin.getLogger().info("[DEBUG] Back button clicked");
                 returnToParent();
+                break;
+            default:
+                // Re-activate if invalid slot clicked
+                isActive = true;
                 break;
         }
     }
     
     private void openItemSelector(ItemCategory category) {
-        cleanup();
+        plugin.getLogger().info("[DEBUG] Opening ItemSelector for category " + category + " for player " + player.getName());
+        forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
         }, 1L);
     }
     
     private void returnToParent() {
-        cleanup();
+        plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
         }, 1L);
     }
     
-    private void cleanup() {
+    private void forceCleanup() {
+        plugin.getLogger().info("[DEBUG] Force cleanup CategorySelectorGUI for " + player.getName());
+        isActive = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
         player.closeInventory();
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
+            plugin.getLogger().info("[DEBUG] CategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            
             // Delay cleanup to allow for navigation
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (activeGuis.containsKey(player.getUniqueId())) {
-                    cleanup();
+                if (isActive && activeGuis.containsKey(player.getUniqueId())) {
+                    plugin.getLogger().info("[DEBUG] Final cleanup CategorySelectorGUI for " + player.getName());
+                    forceCleanup();
                     parentGUI.refreshAndReopen();
                 }
-            }, 2L);
+            }, 3L);
         }
     }
     

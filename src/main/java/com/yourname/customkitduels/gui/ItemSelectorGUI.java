@@ -6,6 +6,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -26,6 +27,7 @@ public class ItemSelectorGUI implements Listener {
     private final List<Material> categoryItems;
     private int currentPage = 0;
     private static final Map<UUID, ItemSelectorGUI> activeGuis = new HashMap<>();
+    private boolean isActive = true;
     
     public ItemSelectorGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot, CategorySelectorGUI.ItemCategory category) {
         this.plugin = plugin;
@@ -35,6 +37,8 @@ public class ItemSelectorGUI implements Listener {
         this.category = category;
         this.categoryItems = getItemsForCategory(category);
         this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_PURPLE + getCategoryName(category) + " Items");
+        
+        plugin.getLogger().info("[DEBUG] Creating ItemSelectorGUI for player " + player.getName() + " category " + category + " slot " + targetSlot);
         
         setupGUI();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -195,33 +199,51 @@ public class ItemSelectorGUI implements Listener {
     }
     
     public void open() {
+        plugin.getLogger().info("[DEBUG] Opening ItemSelectorGUI for " + player.getName());
+        
+        // Clean up any existing item selector GUI for this player
+        ItemSelectorGUI existing = activeGuis.get(player.getUniqueId());
+        if (existing != null && existing != this) {
+            plugin.getLogger().info("[DEBUG] Cleaning up existing ItemSelectorGUI for " + player.getName());
+            existing.forceCleanup();
+        }
+        
         activeGuis.put(player.getUniqueId(), this);
+        isActive = true;
         player.openInventory(gui);
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui)) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
             return;
         }
         
         event.setCancelled(true);
         int slot = event.getSlot();
         
+        plugin.getLogger().info("[DEBUG] ItemSelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
+        
         if (slot == 45 && currentPage > 0) { // Previous page
+            plugin.getLogger().info("[DEBUG] Previous page clicked");
             currentPage--;
             setupGUI();
         } else if (slot == 53 && (currentPage + 1) * 45 < categoryItems.size()) { // Next page
+            plugin.getLogger().info("[DEBUG] Next page clicked");
             currentPage++;
             setupGUI();
         } else if (slot == 49) { // Back button
+            plugin.getLogger().info("[DEBUG] Back to category clicked");
+            isActive = false;
             returnToCategory();
         } else if (slot < 45) { // Item selection
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem != null && clickedItem.getType() != Material.AIR) {
+                plugin.getLogger().info("[DEBUG] Item selected: " + clickedItem.getType() + " for slot " + targetSlot);
+                isActive = false;
                 parentGUI.setSlotItem(targetSlot, clickedItem.clone());
                 player.sendMessage(ChatColor.GREEN + "Item added to slot " + getSlotDisplayName(targetSlot) + "!");
                 returnToParent();
@@ -242,39 +264,46 @@ public class ItemSelectorGUI implements Listener {
     }
     
     private void returnToCategory() {
-        cleanup();
+        plugin.getLogger().info("[DEBUG] Returning to category selector for player " + player.getName());
+        forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open();
         }, 1L);
     }
     
     private void returnToParent() {
-        cleanup();
+        plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
         }, 1L);
     }
     
-    private void cleanup() {
+    private void forceCleanup() {
+        plugin.getLogger().info("[DEBUG] Force cleanup ItemSelectorGUI for " + player.getName());
+        isActive = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
         player.closeInventory();
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
+            plugin.getLogger().info("[DEBUG] ItemSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            
             // Delay cleanup to allow for navigation
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (activeGuis.containsKey(player.getUniqueId())) {
-                    cleanup();
+                if (isActive && activeGuis.containsKey(player.getUniqueId())) {
+                    plugin.getLogger().info("[DEBUG] Final cleanup ItemSelectorGUI for " + player.getName());
+                    forceCleanup();
                     parentGUI.refreshAndReopen();
                 }
-            }, 2L);
+            }, 3L);
         }
     }
 }

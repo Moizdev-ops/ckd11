@@ -48,7 +48,7 @@ public class PotionSelectorGUI implements Listener {
     private List<PotionType> getAvailablePotions() {
         List<PotionType> potions = new ArrayList<>();
         
-        // Add all useful potion types
+        // Add only valid potion types that exist in Minecraft 1.21.4
         potions.addAll(Arrays.asList(
             PotionType.WATER,
             PotionType.MUNDANE,
@@ -56,15 +56,15 @@ public class PotionSelectorGUI implements Listener {
             PotionType.AWKWARD,
             PotionType.NIGHT_VISION,
             PotionType.INVISIBILITY,
-            PotionType.JUMP,
+            PotionType.LEAPING,
             PotionType.FIRE_RESISTANCE,
-            PotionType.SPEED,
+            PotionType.SWIFTNESS,
             PotionType.SLOWNESS,
             PotionType.WATER_BREATHING,
-            PotionType.INSTANT_HEAL,
-            PotionType.INSTANT_DAMAGE,
+            PotionType.HEALING,
+            PotionType.HARMING,
             PotionType.POISON,
-            PotionType.REGEN,
+            PotionType.REGENERATION,
             PotionType.STRENGTH,
             PotionType.WEAKNESS,
             PotionType.LUCK,
@@ -241,13 +241,13 @@ public class PotionSelectorGUI implements Listener {
         switch (potionType) {
             case NIGHT_VISION:
             case INVISIBILITY:
-            case JUMP:
+            case LEAPING:
             case FIRE_RESISTANCE:
-            case SPEED:
+            case SWIFTNESS:
             case SLOWNESS:
             case WATER_BREATHING:
             case POISON:
-            case REGEN:
+            case REGENERATION:
             case STRENGTH:
             case WEAKNESS:
             case SLOW_FALLING:
@@ -259,12 +259,12 @@ public class PotionSelectorGUI implements Listener {
     
     private boolean canBeUpgraded(PotionType potionType) {
         switch (potionType) {
-            case JUMP:
-            case SPEED:
-            case INSTANT_HEAL:
-            case INSTANT_DAMAGE:
+            case LEAPING:
+            case SWIFTNESS:
+            case HEALING:
+            case HARMING:
             case POISON:
-            case REGEN:
+            case REGENERATION:
             case STRENGTH:
             case TURTLE_MASTER:
                 return true;

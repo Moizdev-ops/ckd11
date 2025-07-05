@@ -89,9 +89,9 @@ public class ItemSelectorGUI implements Listener {
                 )));
                 break;
             case POTIONS:
-                // Add all potion types for normal, splash, and lingering potions
-                items.addAll(createPotionItems());
+                // Add basic potion items without problematic types
                 items.addAll(createBasicItems(Arrays.asList(
+                    Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION,
                     Material.GLASS_BOTTLE, Material.BREWING_STAND, Material.CAULDRON, Material.BLAZE_POWDER, Material.NETHER_WART,
                     Material.SPIDER_EYE, Material.FERMENTED_SPIDER_EYE, Material.MAGMA_CREAM, Material.SUGAR,
                     Material.GLISTERING_MELON_SLICE, Material.GOLDEN_CARROT, Material.RABBIT_FOOT, Material.DRAGON_BREATH,
@@ -138,54 +138,6 @@ public class ItemSelectorGUI implements Listener {
             items.add(new ItemStack(material));
         }
         return items;
-    }
-    
-    private List<ItemStack> createPotionItems() {
-        List<ItemStack> potions = new ArrayList<>();
-        
-        // All available potion types
-        PotionType[] potionTypes = {
-            PotionType.WATER, PotionType.MUNDANE, PotionType.THICK, PotionType.AWKWARD,
-            PotionType.NIGHT_VISION, PotionType.INVISIBILITY, PotionType.JUMP, PotionType.FIRE_RESISTANCE,
-            PotionType.SPEED, PotionType.SLOWNESS, PotionType.WATER_BREATHING, PotionType.INSTANT_HEAL,
-            PotionType.INSTANT_DAMAGE, PotionType.POISON, PotionType.REGEN, PotionType.STRENGTH,
-            PotionType.WEAKNESS, PotionType.LUCK, PotionType.TURTLE_MASTER, PotionType.SLOW_FALLING
-        };
-        
-        // Create normal, splash, and lingering versions
-        Material[] potionMaterials = {Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION};
-        
-        for (Material potionMaterial : potionMaterials) {
-            for (PotionType potionType : potionTypes) {
-                ItemStack potion = new ItemStack(potionMaterial);
-                PotionMeta meta = (PotionMeta) potion.getItemMeta();
-                meta.setBasePotionData(new PotionData(potionType, false, false));
-                
-                // Set display name
-                String typeName = formatPotionName(potionType.name());
-                String materialName = formatMaterialName(potionMaterial.name());
-                meta.setDisplayName(ChatColor.WHITE + materialName + " of " + typeName);
-                
-                potion.setItemMeta(meta);
-                potions.add(potion);
-            }
-        }
-        
-        return potions;
-    }
-    
-    private String formatPotionName(String potionName) {
-        String[] words = potionName.toLowerCase().split("_");
-        StringBuilder formatted = new StringBuilder();
-        
-        for (String word : words) {
-            if (formatted.length() > 0) {
-                formatted.append(" ");
-            }
-            formatted.append(word.substring(0, 1).toUpperCase()).append(word.substring(1));
-        }
-        
-        return formatted.toString();
     }
     
     private String getCategoryName(CategorySelectorGUI.ItemCategory category) {

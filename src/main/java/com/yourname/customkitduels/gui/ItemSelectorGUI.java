@@ -13,6 +13,9 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionType;
 
 import java.util.*;
 
@@ -24,7 +27,7 @@ public class ItemSelectorGUI implements Listener {
     private final int targetSlot;
     private final CategorySelectorGUI.ItemCategory category;
     private final Inventory gui;
-    private final List<Material> categoryItems;
+    private final List<ItemStack> categoryItems;
     private int currentPage = 0;
     private static final Map<UUID, ItemSelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
@@ -44,19 +47,19 @@ public class ItemSelectorGUI implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
     
-    private List<Material> getItemsForCategory(CategorySelectorGUI.ItemCategory category) {
-        List<Material> items = new ArrayList<>();
+    private List<ItemStack> getItemsForCategory(CategorySelectorGUI.ItemCategory category) {
+        List<ItemStack> items = new ArrayList<>();
         
         switch (category) {
             case WEAPONS:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD,
                     Material.WOODEN_AXE, Material.STONE_AXE, Material.IRON_AXE, Material.GOLDEN_AXE, Material.DIAMOND_AXE, Material.NETHERITE_AXE,
                     Material.BOW, Material.CROSSBOW, Material.TRIDENT, Material.MACE
-                ));
+                )));
                 break;
             case ARMOR:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.LEATHER_HELMET, Material.LEATHER_CHESTPLATE, Material.LEATHER_LEGGINGS, Material.LEATHER_BOOTS,
                     Material.CHAINMAIL_HELMET, Material.CHAINMAIL_CHESTPLATE, Material.CHAINMAIL_LEGGINGS, Material.CHAINMAIL_BOOTS,
                     Material.IRON_HELMET, Material.IRON_CHESTPLATE, Material.IRON_LEGGINGS, Material.IRON_BOOTS,
@@ -64,68 +67,125 @@ public class ItemSelectorGUI implements Listener {
                     Material.DIAMOND_HELMET, Material.DIAMOND_CHESTPLATE, Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS,
                     Material.NETHERITE_HELMET, Material.NETHERITE_CHESTPLATE, Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS,
                     Material.TURTLE_HELMET, Material.SHIELD
-                ));
+                )));
                 break;
             case BLOCKS:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.STONE, Material.COBBLESTONE, Material.DIRT, Material.GRASS_BLOCK, Material.SAND, Material.GRAVEL,
                     Material.OAK_LOG, Material.OAK_PLANKS, Material.GLASS, Material.OBSIDIAN, Material.BEDROCK,
                     Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.DIAMOND_BLOCK, Material.EMERALD_BLOCK,
                     Material.TNT, Material.WHITE_WOOL, Material.BRICKS, Material.STONE_BRICKS, Material.NETHERRACK, Material.END_STONE,
                     Material.RED_WOOL, Material.BLUE_WOOL, Material.GREEN_WOOL, Material.YELLOW_WOOL, Material.BLACK_WOOL,
                     Material.DEEPSLATE, Material.COPPER_BLOCK, Material.AMETHYST_BLOCK, Material.CALCITE, Material.TUFF
-                ));
+                )));
                 break;
             case FOOD:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.APPLE, Material.GOLDEN_APPLE, Material.ENCHANTED_GOLDEN_APPLE, Material.BREAD, Material.COOKED_BEEF,
                     Material.COOKED_PORKCHOP, Material.COOKED_CHICKEN, Material.COOKED_COD, Material.COOKED_SALMON,
                     Material.CAKE, Material.COOKIE, Material.MELON_SLICE, Material.SWEET_BERRIES, Material.GLOW_BERRIES,
                     Material.CARROT, Material.POTATO, Material.BAKED_POTATO, Material.BEETROOT, Material.MUSHROOM_STEW,
                     Material.SUSPICIOUS_STEW, Material.RABBIT_STEW, Material.PUMPKIN_PIE, Material.DRIED_KELP
-                ));
+                )));
                 break;
             case POTIONS:
-                items.addAll(Arrays.asList(
-                    Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION, Material.GLASS_BOTTLE,
-                    Material.BREWING_STAND, Material.CAULDRON, Material.BLAZE_POWDER, Material.NETHER_WART,
+                // Add all potion types for normal, splash, and lingering potions
+                items.addAll(createPotionItems());
+                items.addAll(createBasicItems(Arrays.asList(
+                    Material.GLASS_BOTTLE, Material.BREWING_STAND, Material.CAULDRON, Material.BLAZE_POWDER, Material.NETHER_WART,
                     Material.SPIDER_EYE, Material.FERMENTED_SPIDER_EYE, Material.MAGMA_CREAM, Material.SUGAR,
                     Material.GLISTERING_MELON_SLICE, Material.GOLDEN_CARROT, Material.RABBIT_FOOT, Material.DRAGON_BREATH,
                     Material.GHAST_TEAR, Material.PHANTOM_MEMBRANE, Material.HONEY_BOTTLE, Material.MILK_BUCKET
-                ));
+                )));
                 break;
             case TOOLS:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.WOODEN_PICKAXE, Material.STONE_PICKAXE, Material.IRON_PICKAXE, Material.GOLDEN_PICKAXE, Material.DIAMOND_PICKAXE, Material.NETHERITE_PICKAXE,
                     Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL,
                     Material.WOODEN_HOE, Material.STONE_HOE, Material.IRON_HOE, Material.GOLDEN_HOE, Material.DIAMOND_HOE, Material.NETHERITE_HOE,
                     Material.FISHING_ROD, Material.SHEARS, Material.FLINT_AND_STEEL, Material.BUCKET, Material.WATER_BUCKET, Material.LAVA_BUCKET,
                     Material.COMPASS, Material.CLOCK, Material.SPYGLASS, Material.BRUSH
-                ));
+                )));
                 break;
             case UTILITY:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.ENDER_PEARL, Material.ENDER_EYE, Material.FLINT_AND_STEEL, Material.FIRE_CHARGE,
                     Material.SNOWBALL, Material.EGG, Material.FISHING_ROD, Material.COMPASS, Material.CLOCK,
                     Material.FILLED_MAP, Material.LEAD, Material.NAME_TAG, Material.SADDLE, Material.OAK_BOAT,
                     Material.MINECART, Material.CHEST_MINECART, Material.FURNACE_MINECART, Material.TNT_MINECART,
                     Material.TOTEM_OF_UNDYING, Material.ELYTRA, Material.FIREWORK_ROCKET, Material.RECOVERY_COMPASS,
                     Material.ECHO_SHARD, Material.GOAT_HORN, Material.WIND_CHARGE
-                ));
+                )));
                 break;
             case MISC:
-                items.addAll(Arrays.asList(
+                items.addAll(createBasicItems(Arrays.asList(
                     Material.BOOK, Material.PAPER, Material.FEATHER, Material.INK_SAC, Material.BONE, Material.STRING,
                     Material.STICK, Material.COAL, Material.CHARCOAL, Material.DIAMOND, Material.EMERALD, Material.GOLD_INGOT,
                     Material.IRON_INGOT, Material.REDSTONE, Material.GUNPOWDER, Material.GLOWSTONE_DUST,
                     Material.EXPERIENCE_BOTTLE, Material.ENCHANTED_BOOK, Material.ANVIL, Material.ENCHANTING_TABLE,
                     Material.NETHERITE_INGOT, Material.COPPER_INGOT, Material.AMETHYST_SHARD, Material.PRISMARINE_SHARD,
                     Material.HEART_OF_THE_SEA, Material.NAUTILUS_SHELL, Material.DISC_FRAGMENT_5
-                ));
+                )));
                 break;
         }
         
         return items;
+    }
+    
+    private List<ItemStack> createBasicItems(List<Material> materials) {
+        List<ItemStack> items = new ArrayList<>();
+        for (Material material : materials) {
+            items.add(new ItemStack(material));
+        }
+        return items;
+    }
+    
+    private List<ItemStack> createPotionItems() {
+        List<ItemStack> potions = new ArrayList<>();
+        
+        // All available potion types
+        PotionType[] potionTypes = {
+            PotionType.WATER, PotionType.MUNDANE, PotionType.THICK, PotionType.AWKWARD,
+            PotionType.NIGHT_VISION, PotionType.INVISIBILITY, PotionType.JUMP, PotionType.FIRE_RESISTANCE,
+            PotionType.SPEED, PotionType.SLOWNESS, PotionType.WATER_BREATHING, PotionType.INSTANT_HEAL,
+            PotionType.INSTANT_DAMAGE, PotionType.POISON, PotionType.REGEN, PotionType.STRENGTH,
+            PotionType.WEAKNESS, PotionType.LUCK, PotionType.TURTLE_MASTER, PotionType.SLOW_FALLING
+        };
+        
+        // Create normal, splash, and lingering versions
+        Material[] potionMaterials = {Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION};
+        
+        for (Material potionMaterial : potionMaterials) {
+            for (PotionType potionType : potionTypes) {
+                ItemStack potion = new ItemStack(potionMaterial);
+                PotionMeta meta = (PotionMeta) potion.getItemMeta();
+                meta.setBasePotionData(new PotionData(potionType, false, false));
+                
+                // Set display name
+                String typeName = formatPotionName(potionType.name());
+                String materialName = formatMaterialName(potionMaterial.name());
+                meta.setDisplayName(ChatColor.WHITE + materialName + " of " + typeName);
+                
+                potion.setItemMeta(meta);
+                potions.add(potion);
+            }
+        }
+        
+        return potions;
+    }
+    
+    private String formatPotionName(String potionName) {
+        String[] words = potionName.toLowerCase().split("_");
+        StringBuilder formatted = new StringBuilder();
+        
+        for (String word : words) {
+            if (formatted.length() > 0) {
+                formatted.append(" ");
+            }
+            formatted.append(word.substring(0, 1).toUpperCase()).append(word.substring(1));
+        }
+        
+        return formatted.toString();
     }
     
     private String getCategoryName(CategorySelectorGUI.ItemCategory category) {
@@ -151,10 +211,11 @@ public class ItemSelectorGUI implements Listener {
         
         // Add items for current page
         for (int i = startIndex; i < endIndex; i++) {
-            Material material = categoryItems.get(i);
-            ItemStack item = new ItemStack(material);
+            ItemStack item = categoryItems.get(i).clone();
             ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.WHITE + formatMaterialName(material.name()));
+            if (meta.getDisplayName() == null || meta.getDisplayName().isEmpty()) {
+                meta.setDisplayName(ChatColor.WHITE + formatMaterialName(item.getType().name()));
+            }
             item.setItemMeta(meta);
             gui.setItem(i - startIndex, item);
         }

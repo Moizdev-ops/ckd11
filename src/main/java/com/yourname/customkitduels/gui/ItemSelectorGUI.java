@@ -67,7 +67,9 @@ public class ItemSelectorGUI implements Listener {
                     Material.STONE, Material.COBBLESTONE, Material.DIRT, Material.GRASS_BLOCK, Material.SAND, Material.GRAVEL,
                     Material.OAK_LOG, Material.OAK_PLANKS, Material.GLASS, Material.OBSIDIAN, Material.BEDROCK,
                     Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.DIAMOND_BLOCK, Material.EMERALD_BLOCK,
-                    Material.TNT, Material.WOOL, Material.BRICKS, Material.STONE_BRICKS, Material.NETHERRACK, Material.END_STONE
+                    Material.TNT, Material.WHITE_WOOL, Material.BRICKS, Material.STONE_BRICKS, Material.NETHERRACK, Material.END_STONE,
+                    Material.RED_WOOL, Material.BLUE_WOOL, Material.GREEN_WOOL, Material.YELLOW_WOOL, Material.BLACK_WOOL,
+                    Material.DEEPSLATE, Material.COPPER_BLOCK, Material.AMETHYST_BLOCK, Material.CALCITE, Material.TUFF
                 ));
                 break;
             case FOOD:
@@ -75,7 +77,8 @@ public class ItemSelectorGUI implements Listener {
                     Material.APPLE, Material.GOLDEN_APPLE, Material.ENCHANTED_GOLDEN_APPLE, Material.BREAD, Material.COOKED_BEEF,
                     Material.COOKED_PORKCHOP, Material.COOKED_CHICKEN, Material.COOKED_COD, Material.COOKED_SALMON,
                     Material.CAKE, Material.COOKIE, Material.MELON_SLICE, Material.SWEET_BERRIES, Material.GLOW_BERRIES,
-                    Material.CARROT, Material.POTATO, Material.BAKED_POTATO, Material.BEETROOT, Material.MUSHROOM_STEW
+                    Material.CARROT, Material.POTATO, Material.BAKED_POTATO, Material.BEETROOT, Material.MUSHROOM_STEW,
+                    Material.SUSPICIOUS_STEW, Material.RABBIT_STEW, Material.PUMPKIN_PIE, Material.DRIED_KELP
                 ));
                 break;
             case POTIONS:
@@ -83,7 +86,8 @@ public class ItemSelectorGUI implements Listener {
                     Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION, Material.GLASS_BOTTLE,
                     Material.BREWING_STAND, Material.CAULDRON, Material.BLAZE_POWDER, Material.NETHER_WART,
                     Material.SPIDER_EYE, Material.FERMENTED_SPIDER_EYE, Material.MAGMA_CREAM, Material.SUGAR,
-                    Material.GLISTERING_MELON_SLICE, Material.GOLDEN_CARROT, Material.RABBIT_FOOT, Material.DRAGON_BREATH
+                    Material.GLISTERING_MELON_SLICE, Material.GOLDEN_CARROT, Material.RABBIT_FOOT, Material.DRAGON_BREATH,
+                    Material.GHAST_TEAR, Material.PHANTOM_MEMBRANE, Material.HONEY_BOTTLE, Material.MILK_BUCKET
                 ));
                 break;
             case TOOLS:
@@ -91,16 +95,18 @@ public class ItemSelectorGUI implements Listener {
                     Material.WOODEN_PICKAXE, Material.STONE_PICKAXE, Material.IRON_PICKAXE, Material.GOLDEN_PICKAXE, Material.DIAMOND_PICKAXE, Material.NETHERITE_PICKAXE,
                     Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL,
                     Material.WOODEN_HOE, Material.STONE_HOE, Material.IRON_HOE, Material.GOLDEN_HOE, Material.DIAMOND_HOE, Material.NETHERITE_HOE,
-                    Material.FISHING_ROD, Material.SHEARS, Material.FLINT_AND_STEEL, Material.BUCKET, Material.WATER_BUCKET, Material.LAVA_BUCKET
+                    Material.FISHING_ROD, Material.SHEARS, Material.FLINT_AND_STEEL, Material.BUCKET, Material.WATER_BUCKET, Material.LAVA_BUCKET,
+                    Material.COMPASS, Material.CLOCK, Material.SPYGLASS, Material.BRUSH
                 ));
                 break;
             case UTILITY:
                 items.addAll(Arrays.asList(
                     Material.ENDER_PEARL, Material.ENDER_EYE, Material.FLINT_AND_STEEL, Material.FIRE_CHARGE,
                     Material.SNOWBALL, Material.EGG, Material.FISHING_ROD, Material.COMPASS, Material.CLOCK,
-                    Material.MAP, Material.LEAD, Material.NAME_TAG, Material.SADDLE, Material.BOAT,
+                    Material.FILLED_MAP, Material.LEAD, Material.NAME_TAG, Material.SADDLE, Material.OAK_BOAT,
                     Material.MINECART, Material.CHEST_MINECART, Material.FURNACE_MINECART, Material.TNT_MINECART,
-                    Material.TOTEM_OF_UNDYING, Material.ELYTRA, Material.FIREWORK_ROCKET
+                    Material.TOTEM_OF_UNDYING, Material.ELYTRA, Material.FIREWORK_ROCKET, Material.RECOVERY_COMPASS,
+                    Material.ECHO_SHARD, Material.GOAT_HORN, Material.WIND_CHARGE
                 ));
                 break;
             case MISC:
@@ -108,7 +114,9 @@ public class ItemSelectorGUI implements Listener {
                     Material.BOOK, Material.PAPER, Material.FEATHER, Material.INK_SAC, Material.BONE, Material.STRING,
                     Material.STICK, Material.COAL, Material.CHARCOAL, Material.DIAMOND, Material.EMERALD, Material.GOLD_INGOT,
                     Material.IRON_INGOT, Material.REDSTONE, Material.GUNPOWDER, Material.GLOWSTONE_DUST,
-                    Material.EXPERIENCE_BOTTLE, Material.ENCHANTED_BOOK, Material.ANVIL, Material.ENCHANTING_TABLE
+                    Material.EXPERIENCE_BOTTLE, Material.ENCHANTED_BOOK, Material.ANVIL, Material.ENCHANTING_TABLE,
+                    Material.NETHERITE_INGOT, Material.COPPER_INGOT, Material.AMETHYST_SHARD, Material.PRISMARINE_SHARD,
+                    Material.HEART_OF_THE_SEA, Material.NAUTILUS_SHELL, Material.SCUTE, Material.DISC_FRAGMENT_5
                 ));
                 break;
         }

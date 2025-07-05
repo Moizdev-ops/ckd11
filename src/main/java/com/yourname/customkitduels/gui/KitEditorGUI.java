@@ -27,6 +27,7 @@ public class KitEditorGUI implements Listener {
     private final Inventory gui;
     private final ItemStack[] kitContents;
     private final ItemStack[] kitArmor;
+    private ItemStack offhandItem;
     private static final Map<UUID, KitEditorGUI> activeGuis = new HashMap<>();
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
@@ -36,12 +37,17 @@ public class KitEditorGUI implements Listener {
         this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_BLUE + "Editing Kit " + kitName);
         this.kitContents = new ItemStack[36];
         this.kitArmor = new ItemStack[4];
+        this.offhandItem = null;
         
         // Load existing kit if editing
         Kit existingKit = plugin.getKitManager().getKit(player.getUniqueId(), kitName);
         if (existingKit != null) {
             System.arraycopy(existingKit.getContents(), 0, kitContents, 0, 36);
             System.arraycopy(existingKit.getArmor(), 0, kitArmor, 0, 4);
+            // Load offhand if available (stored in slot 36 of contents array)
+            if (existingKit.getContents().length > 36 && existingKit.getContents()[36] != null) {
+                this.offhandItem = existingKit.getContents()[36];
+            }
         }
         
         setupGUI();
@@ -67,6 +73,13 @@ public class KitEditorGUI implements Listener {
             glassPane.setItemMeta(meta);
             gui.setItem(36 + i, glassPane);
         }
+        
+        // Add offhand slot (slot 40)
+        ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
+        ItemMeta offhandMeta = offhandPane.getItemMeta();
+        offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
+        offhandPane.setItemMeta(offhandMeta);
+        gui.setItem(40, offhandPane);
         
         // Add control buttons
         ItemStack saveButton = new ItemStack(Material.EMERALD);
@@ -121,6 +134,17 @@ public class KitEditorGUI implements Listener {
                 gui.setItem(36 + i, glassPane);
             }
         }
+        
+        // Update offhand slot
+        if (offhandItem != null) {
+            gui.setItem(40, offhandItem.clone());
+        } else {
+            ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
+            ItemMeta offhandMeta = offhandPane.getItemMeta();
+            offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
+            offhandPane.setItemMeta(offhandMeta);
+            gui.setItem(40, offhandPane);
+        }
     }
     
     public void open() {
@@ -156,8 +180,8 @@ public class KitEditorGUI implements Listener {
             return;
         }
         
-        // Handle slot selection (0-39)
-        if (slot < 40) {
+        // Handle slot selection (0-40: main inventory, armor, and offhand)
+        if (slot <= 40) {
             new CategorySelectorGUI(plugin, player, this, slot).open();
         }
     }
@@ -180,6 +204,8 @@ public class KitEditorGUI implements Listener {
             kitContents[slot] = item;
         } else if (slot < 40) {
             kitArmor[slot - 36] = item;
+        } else if (slot == 40) {
+            offhandItem = item;
         }
         updateDisplayedItems();
     }
@@ -195,12 +221,18 @@ public class KitEditorGUI implements Listener {
         for (int i = 0; i < 4; i++) {
             kitArmor[i] = null;
         }
+        offhandItem = null;
         updateDisplayedItems();
         player.sendMessage(ChatColor.YELLOW + "All slots cleared!");
     }
     
     private void saveKit() {
-        Kit kit = new Kit(kitName, kitName, kitContents.clone(), kitArmor.clone());
+        // Create extended contents array to include offhand
+        ItemStack[] extendedContents = new ItemStack[37];
+        System.arraycopy(kitContents, 0, extendedContents, 0, 36);
+        extendedContents[36] = offhandItem;
+        
+        Kit kit = new Kit(kitName, kitName, extendedContents, kitArmor.clone());
         plugin.getKitManager().saveKit(player.getUniqueId(), kit);
         
         player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' saved successfully!");

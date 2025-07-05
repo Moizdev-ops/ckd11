@@ -202,9 +202,24 @@ public class DuelManager {
         // Set gamemode
         player.setGameMode(GameMode.SURVIVAL);
         
-        // Give kit
-        player.getInventory().setContents(kit.getContents().clone());
-        player.getInventory().setArmorContents(kit.getArmor().clone());
+        // Give kit - handle main inventory (36 slots)
+        ItemStack[] contents = kit.getContents();
+        if (contents != null) {
+            // Set main inventory (slots 0-35)
+            ItemStack[] mainInventory = new ItemStack[36];
+            System.arraycopy(contents, 0, mainInventory, 0, Math.min(contents.length, 36));
+            player.getInventory().setContents(mainInventory);
+            
+            // Set offhand (slot 36 in our extended array)
+            if (contents.length > 36 && contents[36] != null) {
+                player.getInventory().setItemInOffHand(contents[36]);
+            }
+        }
+        
+        // Give armor
+        if (kit.getArmor() != null) {
+            player.getInventory().setArmorContents(kit.getArmor().clone());
+        }
         
         // Update inventory
         player.updateInventory();
@@ -248,6 +263,7 @@ public class DuelManager {
         // Clear inventory
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
+        player.getInventory().setItemInOffHand(null);
         
         // Remove potion effects
         for (PotionEffect effect : player.getActivePotionEffects()) {

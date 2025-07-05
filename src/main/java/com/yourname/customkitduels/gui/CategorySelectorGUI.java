@@ -139,39 +139,53 @@ public class CategorySelectorGUI implements Listener {
         
         switch (slot) {
             case 10: // Weapons
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.WEAPONS).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.WEAPONS));
                 break;
             case 11: // Armor
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.ARMOR).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.ARMOR));
                 break;
             case 12: // Blocks
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.BLOCKS).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.BLOCKS));
                 break;
             case 13: // Food
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.FOOD).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.FOOD));
                 break;
             case 14: // Potions
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.POTIONS).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.POTIONS));
                 break;
             case 15: // Tools
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.TOOLS).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.TOOLS));
                 break;
             case 16: // Utility
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.UTILITY).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.UTILITY));
                 break;
             case 19: // Misc
-                new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.MISC).open();
+                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.MISC));
                 break;
             case 21: // Clear slot
                 parentGUI.clearSlot(targetSlot);
-                player.closeInventory();
-                player.openInventory(parentGUI.getGui());
+                closeAndReturnToParent();
                 break;
             case 22: // Back
-                player.closeInventory();
-                player.openInventory(parentGUI.getGui());
+                closeAndReturnToParent();
                 break;
         }
+    }
+    
+    private void closeAndOpenNext(ItemSelectorGUI nextGUI) {
+        activeGuis.remove(player.getUniqueId());
+        InventoryClickEvent.getHandlerList().unregister(this);
+        InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> nextGUI.open(), 1L);
+    }
+    
+    private void closeAndReturnToParent() {
+        activeGuis.remove(player.getUniqueId());
+        InventoryClickEvent.getHandlerList().unregister(this);
+        InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> player.openInventory(parentGUI.getGui()), 1L);
     }
     
     @EventHandler

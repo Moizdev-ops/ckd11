@@ -116,7 +116,7 @@ public class ItemSelectorGUI implements Listener {
                     Material.IRON_INGOT, Material.REDSTONE, Material.GUNPOWDER, Material.GLOWSTONE_DUST,
                     Material.EXPERIENCE_BOTTLE, Material.ENCHANTED_BOOK, Material.ANVIL, Material.ENCHANTING_TABLE,
                     Material.NETHERITE_INGOT, Material.COPPER_INGOT, Material.AMETHYST_SHARD, Material.PRISMARINE_SHARD,
-                    Material.HEART_OF_THE_SEA, Material.NAUTILUS_SHELL, Material.SCUTE, Material.DISC_FRAGMENT_5
+                    Material.HEART_OF_THE_SEA, Material.NAUTILUS_SHELL, Material.DISC_FRAGMENT_5
                 ));
                 break;
         }
@@ -218,16 +218,45 @@ public class ItemSelectorGUI implements Listener {
             currentPage++;
             setupGUI();
         } else if (slot == 49) { // Back button
-            new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open();
+            closeAndReturnToCategory();
         } else if (slot < 45) { // Item selection
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem != null && clickedItem.getType() != Material.AIR) {
                 parentGUI.setSlotItem(targetSlot, clickedItem.clone());
-                player.closeInventory();
-                player.openInventory(parentGUI.getGui());
-                player.sendMessage(ChatColor.GREEN + "Item added to slot " + (targetSlot + 1) + "!");
+                player.sendMessage(ChatColor.GREEN + "Item added to slot " + getSlotDisplayName(targetSlot) + "!");
+                closeAndReturnToParent();
             }
         }
+    }
+    
+    private String getSlotDisplayName(int slot) {
+        if (slot < 36) {
+            return "#" + (slot + 1);
+        } else if (slot < 40) {
+            String[] armorSlots = {"Boots", "Leggings", "Chestplate", "Helmet"};
+            return armorSlots[slot - 36];
+        } else if (slot == 40) {
+            return "Offhand";
+        }
+        return "Unknown";
+    }
+    
+    private void closeAndReturnToCategory() {
+        activeGuis.remove(player.getUniqueId());
+        InventoryClickEvent.getHandlerList().unregister(this);
+        InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> 
+            new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open(), 1L);
+    }
+    
+    private void closeAndReturnToParent() {
+        activeGuis.remove(player.getUniqueId());
+        InventoryClickEvent.getHandlerList().unregister(this);
+        InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> 
+            player.openInventory(parentGUI.getGui()), 1L);
     }
     
     @EventHandler

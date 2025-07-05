@@ -13,9 +13,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionData;
-import org.bukkit.potion.PotionType;
 
 import java.util.*;
 
@@ -89,7 +86,7 @@ public class ItemSelectorGUI implements Listener {
                 )));
                 break;
             case POTIONS:
-                // Add basic potion items without problematic types
+                // Add basic potion items
                 items.addAll(createBasicItems(Arrays.asList(
                     Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION,
                     Material.GLASS_BOTTLE, Material.BREWING_STAND, Material.CAULDRON, Material.BLAZE_POWDER, Material.NETHER_WART,
@@ -250,13 +247,11 @@ public class ItemSelectorGUI implements Listener {
             setupGUI();
         } else if (slot == 49) { // Back button
             plugin.getLogger().info("[DEBUG] Back to category clicked");
-            isActive = false;
             returnToCategory();
         } else if (slot < 45) { // Item selection
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem != null && clickedItem.getType() != Material.AIR) {
                 plugin.getLogger().info("[DEBUG] Item selected: " + clickedItem.getType() + " for slot " + targetSlot);
-                isActive = false;
                 parentGUI.setSlotItem(targetSlot, clickedItem.clone());
                 player.sendMessage(ChatColor.GREEN + "Item added to slot " + getSlotDisplayName(targetSlot) + "!");
                 returnToParent();

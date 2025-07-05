@@ -225,10 +225,7 @@ public class KitEditorGUI implements Listener {
             // Left-click or right-click on empty slot: open category selector
             plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening category selector");
             
-            // Temporarily deactivate this GUI
-            isActive = false;
-            
-            // Open category selector for this slot
+            // Open category selector for this slot without deactivating
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 new CategorySelectorGUI(plugin, player, this, slot).open();
             }, 1L);
@@ -256,7 +253,6 @@ public class KitEditorGUI implements Listener {
     
     private void openItemModificationMenu(int slot, ItemStack item) {
         plugin.getLogger().info("[DEBUG] Opening item modification menu for slot " + slot);
-        isActive = false;
         
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemModificationGUI(plugin, player, this, slot, item).open();

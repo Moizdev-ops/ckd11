@@ -153,9 +153,6 @@ public class CategorySelectorGUI implements Listener {
         
         plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
         
-        // Deactivate immediately to prevent double-clicks
-        isActive = false;
-        
         switch (slot) {
             case 10: // Weapons
                 openItemSelector(ItemCategory.WEAPONS);
@@ -189,10 +186,6 @@ public class CategorySelectorGUI implements Listener {
             case 22: // Back
                 plugin.getLogger().info("[DEBUG] Back button clicked");
                 returnToParent();
-                break;
-            default:
-                // Re-activate if invalid slot clicked
-                isActive = true;
                 break;
         }
     }

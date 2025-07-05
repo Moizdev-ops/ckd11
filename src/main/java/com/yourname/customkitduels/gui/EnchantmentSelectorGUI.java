@@ -28,6 +28,40 @@ public class EnchantmentSelectorGUI implements Listener {
     private static final Map<UUID, EnchantmentSelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
     
+    // Enchantment conflict groups
+    private static final Set<Enchantment> PROTECTION_ENCHANTS = new HashSet<>(Arrays.asList(
+        Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, 
+        Enchantment.BLAST_PROTECTION, Enchantment.PROJECTILE_PROTECTION
+    ));
+    
+    private static final Set<Enchantment> DAMAGE_ENCHANTS = new HashSet<>(Arrays.asList(
+        Enchantment.SHARPNESS, Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS
+    ));
+    
+    private static final Set<Enchantment> FORTUNE_SILK_TOUCH = new HashSet<>(Arrays.asList(
+        Enchantment.FORTUNE, Enchantment.SILK_TOUCH
+    ));
+    
+    private static final Set<Enchantment> INFINITY_MENDING = new HashSet<>(Arrays.asList(
+        Enchantment.INFINITY, Enchantment.MENDING
+    ));
+    
+    private static final Set<Enchantment> DEPTH_STRIDER_FROST_WALKER = new HashSet<>(Arrays.asList(
+        Enchantment.DEPTH_STRIDER, Enchantment.FROST_WALKER
+    ));
+    
+    private static final Set<Enchantment> MULTISHOT_PIERCING = new HashSet<>(Arrays.asList(
+        Enchantment.MULTISHOT, Enchantment.PIERCING
+    ));
+    
+    private static final Set<Enchantment> LOYALTY_RIPTIDE = new HashSet<>(Arrays.asList(
+        Enchantment.LOYALTY, Enchantment.RIPTIDE
+    ));
+    
+    private static final Set<Enchantment> CHANNELING_RIPTIDE = new HashSet<>(Arrays.asList(
+        Enchantment.CHANNELING, Enchantment.RIPTIDE
+    ));
+    
     public EnchantmentSelectorGUI(CustomKitDuels plugin, Player player, ItemModificationGUI parentGUI, ItemStack targetItem) {
         this.plugin = plugin;
         this.player = player;
@@ -164,7 +198,7 @@ public class EnchantmentSelectorGUI implements Listener {
         // Add enchantment options
         int slot = 9;
         for (Enchantment enchantment : availableEnchantments) {
-            if (slot >= 45) break; // Don't overflow into control area
+            if (slot >= 44) break; // Don't overflow into control area
             
             ItemStack enchantItem = new ItemStack(Material.ENCHANTED_BOOK);
             ItemMeta meta = enchantItem.getItemMeta();
@@ -182,12 +216,25 @@ public class EnchantmentSelectorGUI implements Listener {
             lore.add(ChatColor.YELLOW + "Right-click to decrease level");
             lore.add(ChatColor.RED + "Shift-click to remove");
             
+            // Add conflict warnings
+            if (hasConflictingEnchantments(enchantment)) {
+                lore.add(ChatColor.RED + "⚠ Conflicts with existing enchantments!");
+            }
+            
             meta.setLore(lore);
             enchantItem.setItemMeta(meta);
             
             gui.setItem(slot, enchantItem);
             slot++;
         }
+        
+        // Clear all enchantments button
+        ItemStack clearButton = new ItemStack(Material.BARRIER);
+        ItemMeta clearMeta = clearButton.getItemMeta();
+        clearMeta.setDisplayName(ChatColor.RED + "Clear All Enchantments");
+        clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Remove all enchantments from this item"));
+        clearButton.setItemMeta(clearMeta);
+        gui.setItem(45, clearButton);
         
         // Apply changes button
         ItemStack applyButton = new ItemStack(Material.EMERALD);
@@ -204,6 +251,43 @@ public class EnchantmentSelectorGUI implements Listener {
         backMeta.setLore(Arrays.asList(ChatColor.GRAY + "Return without saving"));
         backButton.setItemMeta(backMeta);
         gui.setItem(53, backButton);
+    }
+    
+    private boolean hasConflictingEnchantments(Enchantment enchantment) {
+        Map<Enchantment, Integer> currentEnchants = targetItem.getEnchantments();
+        
+        for (Enchantment current : currentEnchants.keySet()) {
+            if (areEnchantmentsConflicting(enchantment, current)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean areEnchantmentsConflicting(Enchantment ench1, Enchantment ench2) {
+        if (ench1.equals(ench2)) return false;
+        
+        // Check all conflict groups
+        return (PROTECTION_ENCHANTS.contains(ench1) && PROTECTION_ENCHANTS.contains(ench2)) ||
+               (DAMAGE_ENCHANTS.contains(ench1) && DAMAGE_ENCHANTS.contains(ench2)) ||
+               (FORTUNE_SILK_TOUCH.contains(ench1) && FORTUNE_SILK_TOUCH.contains(ench2)) ||
+               (INFINITY_MENDING.contains(ench1) && INFINITY_MENDING.contains(ench2)) ||
+               (DEPTH_STRIDER_FROST_WALKER.contains(ench1) && DEPTH_STRIDER_FROST_WALKER.contains(ench2)) ||
+               (MULTISHOT_PIERCING.contains(ench1) && MULTISHOT_PIERCING.contains(ench2)) ||
+               (LOYALTY_RIPTIDE.contains(ench1) && LOYALTY_RIPTIDE.contains(ench2)) ||
+               (CHANNELING_RIPTIDE.contains(ench1) && CHANNELING_RIPTIDE.contains(ench2));
+    }
+    
+    private void removeConflictingEnchantments(Enchantment newEnchantment) {
+        Map<Enchantment, Integer> currentEnchants = new HashMap<>(targetItem.getEnchantments());
+        
+        for (Enchantment current : currentEnchants.keySet()) {
+            if (areEnchantmentsConflicting(newEnchantment, current)) {
+                targetItem.removeEnchantment(current);
+                player.sendMessage(ChatColor.YELLOW + "Removed conflicting enchantment: " + formatEnchantmentName(current.getKey().getKey()));
+            }
+        }
     }
     
     private String formatEnchantmentName(String key) {
@@ -246,6 +330,11 @@ public class EnchantmentSelectorGUI implements Listener {
         event.setCancelled(true);
         int slot = event.getSlot();
         
+        if (slot == 45) { // Clear all enchantments
+            clearAllEnchantments();
+            return;
+        }
+        
         if (slot == 49) { // Apply changes
             applyChanges();
             return;
@@ -257,13 +346,22 @@ public class EnchantmentSelectorGUI implements Listener {
         }
         
         // Handle enchantment clicks
-        if (slot >= 9 && slot < 45) {
+        if (slot >= 9 && slot < 44) {
             int enchantIndex = slot - 9;
             if (enchantIndex < availableEnchantments.size()) {
                 Enchantment enchantment = availableEnchantments.get(enchantIndex);
                 handleEnchantmentClick(enchantment, event);
             }
         }
+    }
+    
+    private void clearAllEnchantments() {
+        Map<Enchantment, Integer> currentEnchants = new HashMap<>(targetItem.getEnchantments());
+        for (Enchantment enchant : currentEnchants.keySet()) {
+            targetItem.removeEnchantment(enchant);
+        }
+        player.sendMessage(ChatColor.YELLOW + "All enchantments cleared!");
+        setupGUI(); // Refresh the GUI
     }
     
     private void handleEnchantmentClick(Enchantment enchantment, InventoryClickEvent event) {
@@ -279,6 +377,8 @@ public class EnchantmentSelectorGUI implements Listener {
         } else if (event.isLeftClick()) {
             // Increase level
             if (currentLevel < maxLevel) {
+                // Remove conflicting enchantments before adding
+                removeConflictingEnchantments(enchantment);
                 targetItem.addUnsafeEnchantment(enchantment, currentLevel + 1);
                 player.sendMessage(ChatColor.GREEN + "Increased " + formatEnchantmentName(enchantment.getKey().getKey()) + " to level " + (currentLevel + 1));
             }

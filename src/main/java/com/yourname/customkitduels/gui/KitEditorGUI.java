@@ -42,7 +42,7 @@ public class KitEditorGUI implements Listener {
         // Load existing kit if editing
         Kit existingKit = plugin.getKitManager().getKit(player.getUniqueId(), kitName);
         if (existingKit != null) {
-            System.arraycopy(existingKit.getContents(), 0, kitContents, 0, 36);
+            System.arraycopy(existingKit.getContents(), 0, kitContents, 0, Math.min(existingKit.getContents().length, 36));
             System.arraycopy(existingKit.getArmor(), 0, kitArmor, 0, 4);
             // Load offhand if available (stored in slot 36 of contents array)
             if (existingKit.getContents().length > 36 && existingKit.getContents()[36] != null) {
@@ -55,31 +55,49 @@ public class KitEditorGUI implements Listener {
     }
     
     private void setupGUI() {
-        // Fill main inventory slots (0-35) with colored glass panes
+        // Clear GUI first
+        gui.clear();
+        
+        // Fill main inventory slots (0-35) with colored glass panes or items
         for (int i = 0; i < 36; i++) {
-            ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
-            ItemMeta meta = glassPane.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + "Slot #" + (i + 1));
-            glassPane.setItemMeta(meta);
-            gui.setItem(i, glassPane);
+            if (kitContents[i] != null) {
+                gui.setItem(i, kitContents[i].clone());
+            } else {
+                ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+                ItemMeta meta = glassPane.getItemMeta();
+                meta.setDisplayName(ChatColor.AQUA + "Slot #" + (i + 1));
+                meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add an item"));
+                glassPane.setItemMeta(meta);
+                gui.setItem(i, glassPane);
+            }
         }
         
-        // Fill armor slots (36-39) with colored glass panes
+        // Fill armor slots (36-39) with colored glass panes or items
         String[] armorSlots = {"Boots", "Leggings", "Chestplate", "Helmet"};
         for (int i = 0; i < 4; i++) {
-            ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-            ItemMeta meta = glassPane.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + armorSlots[i] + " Slot");
-            glassPane.setItemMeta(meta);
-            gui.setItem(36 + i, glassPane);
+            if (kitArmor[i] != null) {
+                gui.setItem(36 + i, kitArmor[i].clone());
+            } else {
+                ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+                ItemMeta meta = glassPane.getItemMeta();
+                meta.setDisplayName(ChatColor.AQUA + armorSlots[i] + " Slot");
+                meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add armor"));
+                glassPane.setItemMeta(meta);
+                gui.setItem(36 + i, glassPane);
+            }
         }
         
         // Add offhand slot (slot 40)
-        ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
-        ItemMeta offhandMeta = offhandPane.getItemMeta();
-        offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
-        offhandPane.setItemMeta(offhandMeta);
-        gui.setItem(40, offhandPane);
+        if (offhandItem != null) {
+            gui.setItem(40, offhandItem.clone());
+        } else {
+            ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
+            ItemMeta offhandMeta = offhandPane.getItemMeta();
+            offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
+            offhandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add offhand item"));
+            offhandPane.setItemMeta(offhandMeta);
+            gui.setItem(40, offhandPane);
+        }
         
         // Add control buttons
         ItemStack saveButton = new ItemStack(Material.EMERALD);
@@ -103,48 +121,6 @@ public class KitEditorGUI implements Listener {
         clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to clear all slots"));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
-        
-        updateDisplayedItems();
-    }
-    
-    private void updateDisplayedItems() {
-        // Update main inventory slots with actual items or glass panes
-        for (int i = 0; i < 36; i++) {
-            if (kitContents[i] != null) {
-                gui.setItem(i, kitContents[i].clone());
-            } else {
-                ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
-                ItemMeta meta = glassPane.getItemMeta();
-                meta.setDisplayName(ChatColor.AQUA + "Slot #" + (i + 1));
-                glassPane.setItemMeta(meta);
-                gui.setItem(i, glassPane);
-            }
-        }
-        
-        // Update armor slots
-        String[] armorSlots = {"Boots", "Leggings", "Chestplate", "Helmet"};
-        for (int i = 0; i < 4; i++) {
-            if (kitArmor[i] != null) {
-                gui.setItem(36 + i, kitArmor[i].clone());
-            } else {
-                ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-                ItemMeta meta = glassPane.getItemMeta();
-                meta.setDisplayName(ChatColor.AQUA + armorSlots[i] + " Slot");
-                glassPane.setItemMeta(meta);
-                gui.setItem(36 + i, glassPane);
-            }
-        }
-        
-        // Update offhand slot
-        if (offhandItem != null) {
-            gui.setItem(40, offhandItem.clone());
-        } else {
-            ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
-            ItemMeta offhandMeta = offhandPane.getItemMeta();
-            offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
-            offhandPane.setItemMeta(offhandMeta);
-            gui.setItem(40, offhandPane);
-        }
     }
     
     public void open() {
@@ -171,6 +147,7 @@ public class KitEditorGUI implements Listener {
         }
         
         if (slot == 53) { // Cancel button
+            cleanup();
             player.closeInventory();
             return;
         }
@@ -182,7 +159,10 @@ public class KitEditorGUI implements Listener {
         
         // Handle slot selection (0-40: main inventory, armor, and offhand)
         if (slot <= 40) {
-            new CategorySelectorGUI(plugin, player, this, slot).open();
+            // Open category selector for this slot
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new CategorySelectorGUI(plugin, player, this, slot).open();
+            }, 1L);
         }
     }
     
@@ -192,11 +172,19 @@ public class KitEditorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            activeGuis.remove(player.getUniqueId());
-            // Unregister this listener
-            InventoryClickEvent.getHandlerList().unregister(this);
-            InventoryCloseEvent.getHandlerList().unregister(this);
+            // Only cleanup if this is a final close (not a temporary one for navigation)
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (!player.getOpenInventory().getTopInventory().equals(gui)) {
+                    cleanup();
+                }
+            }, 2L);
         }
+    }
+    
+    private void cleanup() {
+        activeGuis.remove(player.getUniqueId());
+        InventoryClickEvent.getHandlerList().unregister(this);
+        InventoryCloseEvent.getHandlerList().unregister(this);
     }
     
     public void setSlotItem(int slot, ItemStack item) {
@@ -207,7 +195,7 @@ public class KitEditorGUI implements Listener {
         } else if (slot == 40) {
             offhandItem = item;
         }
-        updateDisplayedItems();
+        setupGUI(); // Refresh the entire GUI
     }
     
     public void clearSlot(int slot) {
@@ -222,7 +210,7 @@ public class KitEditorGUI implements Listener {
             kitArmor[i] = null;
         }
         offhandItem = null;
-        updateDisplayedItems();
+        setupGUI(); // Refresh the entire GUI
         player.sendMessage(ChatColor.YELLOW + "All slots cleared!");
     }
     
@@ -236,10 +224,18 @@ public class KitEditorGUI implements Listener {
         plugin.getKitManager().saveKit(player.getUniqueId(), kit);
         
         player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' saved successfully!");
+        cleanup();
         player.closeInventory();
     }
     
     public Inventory getGui() {
         return gui;
+    }
+    
+    public void refreshAndReopen() {
+        setupGUI();
+        if (!player.getOpenInventory().getTopInventory().equals(gui)) {
+            player.openInventory(gui);
+        }
     }
 }

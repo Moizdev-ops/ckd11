@@ -139,53 +139,58 @@ public class CategorySelectorGUI implements Listener {
         
         switch (slot) {
             case 10: // Weapons
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.WEAPONS));
+                openItemSelector(ItemCategory.WEAPONS);
                 break;
             case 11: // Armor
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.ARMOR));
+                openItemSelector(ItemCategory.ARMOR);
                 break;
             case 12: // Blocks
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.BLOCKS));
+                openItemSelector(ItemCategory.BLOCKS);
                 break;
             case 13: // Food
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.FOOD));
+                openItemSelector(ItemCategory.FOOD);
                 break;
             case 14: // Potions
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.POTIONS));
+                openItemSelector(ItemCategory.POTIONS);
                 break;
             case 15: // Tools
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.TOOLS));
+                openItemSelector(ItemCategory.TOOLS);
                 break;
             case 16: // Utility
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.UTILITY));
+                openItemSelector(ItemCategory.UTILITY);
                 break;
             case 19: // Misc
-                closeAndOpenNext(new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, ItemCategory.MISC));
+                openItemSelector(ItemCategory.MISC);
                 break;
             case 21: // Clear slot
                 parentGUI.clearSlot(targetSlot);
-                closeAndReturnToParent();
+                returnToParent();
                 break;
             case 22: // Back
-                closeAndReturnToParent();
+                returnToParent();
                 break;
         }
     }
     
-    private void closeAndOpenNext(ItemSelectorGUI nextGUI) {
-        activeGuis.remove(player.getUniqueId());
-        InventoryClickEvent.getHandlerList().unregister(this);
-        InventoryCloseEvent.getHandlerList().unregister(this);
-        player.closeInventory();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> nextGUI.open(), 1L);
+    private void openItemSelector(ItemCategory category) {
+        cleanup();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
+        }, 1L);
     }
     
-    private void closeAndReturnToParent() {
+    private void returnToParent() {
+        cleanup();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            parentGUI.refreshAndReopen();
+        }, 1L);
+    }
+    
+    private void cleanup() {
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
         player.closeInventory();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> player.openInventory(parentGUI.getGui()), 1L);
     }
     
     @EventHandler
@@ -194,10 +199,13 @@ public class CategorySelectorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            activeGuis.remove(player.getUniqueId());
-            // Unregister this listener
-            InventoryClickEvent.getHandlerList().unregister(this);
-            InventoryCloseEvent.getHandlerList().unregister(this);
+            // Delay cleanup to allow for navigation
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (activeGuis.containsKey(player.getUniqueId())) {
+                    cleanup();
+                    parentGUI.refreshAndReopen();
+                }
+            }, 2L);
         }
     }
     

@@ -218,13 +218,13 @@ public class ItemSelectorGUI implements Listener {
             currentPage++;
             setupGUI();
         } else if (slot == 49) { // Back button
-            closeAndReturnToCategory();
+            returnToCategory();
         } else if (slot < 45) { // Item selection
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem != null && clickedItem.getType() != Material.AIR) {
                 parentGUI.setSlotItem(targetSlot, clickedItem.clone());
                 player.sendMessage(ChatColor.GREEN + "Item added to slot " + getSlotDisplayName(targetSlot) + "!");
-                closeAndReturnToParent();
+                returnToParent();
             }
         }
     }
@@ -241,22 +241,25 @@ public class ItemSelectorGUI implements Listener {
         return "Unknown";
     }
     
-    private void closeAndReturnToCategory() {
-        activeGuis.remove(player.getUniqueId());
-        InventoryClickEvent.getHandlerList().unregister(this);
-        InventoryCloseEvent.getHandlerList().unregister(this);
-        player.closeInventory();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> 
-            new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open(), 1L);
+    private void returnToCategory() {
+        cleanup();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open();
+        }, 1L);
     }
     
-    private void closeAndReturnToParent() {
+    private void returnToParent() {
+        cleanup();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            parentGUI.refreshAndReopen();
+        }, 1L);
+    }
+    
+    private void cleanup() {
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
         player.closeInventory();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> 
-            player.openInventory(parentGUI.getGui()), 1L);
     }
     
     @EventHandler
@@ -265,10 +268,13 @@ public class ItemSelectorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            activeGuis.remove(player.getUniqueId());
-            // Unregister this listener
-            InventoryClickEvent.getHandlerList().unregister(this);
-            InventoryCloseEvent.getHandlerList().unregister(this);
+            // Delay cleanup to allow for navigation
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (activeGuis.containsKey(player.getUniqueId())) {
+                    cleanup();
+                    parentGUI.refreshAndReopen();
+                }
+            }, 2L);
         }
     }
 }

@@ -4,6 +4,7 @@ import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Arena;
 import com.yourname.customkitduels.data.Kit;
 import com.yourname.customkitduels.gui.KitEditorGUI;
+import com.yourname.customkitduels.gui.RoundsSelectorGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -70,7 +71,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/ckd editkit <name> - Edit an existing kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd deletekit <name> - Delete a kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd listkits - List your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player");
+        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player (opens rounds selector)");
         sender.sendMessage(ChatColor.YELLOW + "/ckd accept - Accept a duel request");
         if (sender.hasPermission("customkitduels.admin")) {
             sender.sendMessage(ChatColor.AQUA + "Admin Commands:");
@@ -228,7 +229,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        plugin.getDuelManager().sendDuelRequest(player, target, kit);
+        // Open rounds selector GUI instead of sending duel request directly
+        new RoundsSelectorGUI(plugin, player, target, kit).open();
         return true;
     }
     
@@ -244,7 +246,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
         
         Player player = (Player) sender;
-        plugin.getDuelManager().acceptDuel(player);
+        plugin.getDuelManager().acceptRoundsDuel(player);
         return true;
     }
     

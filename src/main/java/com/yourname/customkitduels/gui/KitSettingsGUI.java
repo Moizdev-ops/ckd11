@@ -55,6 +55,7 @@ public class KitSettingsGUI implements Listener {
         heartsMeta.setLore(Arrays.asList(
             ChatColor.GRAY + "Current: " + ChatColor.WHITE + currentHearts + " hearts",
             ChatColor.GRAY + "Players will have this much health",
+            ChatColor.YELLOW + "Range: 1-30 hearts",
             ChatColor.GREEN + "Click to change"
         ));
         heartsItem.setItemMeta(heartsMeta);
@@ -77,7 +78,7 @@ public class KitSettingsGUI implements Listener {
         ItemMeta resetMeta = resetItem.getItemMeta();
         resetMeta.setDisplayName(ChatColor.YELLOW + "Reset to Defaults");
         resetMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "20 hearts, natural regen enabled",
+            ChatColor.GRAY + "10 hearts, natural regen enabled",
             ChatColor.GREEN + "Click to reset"
         ));
         resetItem.setItemMeta(resetMeta);
@@ -140,7 +141,7 @@ public class KitSettingsGUI implements Listener {
         plugin.getLogger().info("[DEBUG] Requesting hearts from " + player.getName());
         waitingForHearts.add(player.getUniqueId());
         player.closeInventory();
-        player.sendMessage(ChatColor.YELLOW + "Enter the number of hearts (1-20) in chat:");
+        player.sendMessage(ChatColor.YELLOW + "Enter the number of hearts (1-30) in chat:");
         player.sendMessage(ChatColor.GRAY + "Example: 10 for 10 hearts (20 health)");
     }
     
@@ -162,8 +163,8 @@ public class KitSettingsGUI implements Listener {
         
         try {
             double hearts = Double.parseDouble(message);
-            if (hearts < 1 || hearts > 20) {
-                player.sendMessage(ChatColor.RED + "Invalid hearts! Must be between 1 and 20");
+            if (hearts < 1 || hearts > 30) {
+                player.sendMessage(ChatColor.RED + "Invalid hearts! Must be between 1 and 30");
             } else {
                 plugin.getKitManager().setKitHearts(player.getUniqueId(), kitName, hearts);
                 player.sendMessage(ChatColor.GREEN + "Kit hearts set to " + hearts + "!");
@@ -198,7 +199,7 @@ public class KitSettingsGUI implements Listener {
     }
     
     private void resetToDefaults() {
-        plugin.getKitManager().setKitHearts(player.getUniqueId(), kitName, 20.0);
+        plugin.getKitManager().setKitHearts(player.getUniqueId(), kitName, 10.0); // Changed default to 10
         plugin.getKitManager().setKitNaturalRegen(player.getUniqueId(), kitName, true);
         
         player.sendMessage(ChatColor.GREEN + "Kit settings reset to defaults!");

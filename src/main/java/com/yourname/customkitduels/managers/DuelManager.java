@@ -2,9 +2,7 @@ package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.*;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -21,6 +19,7 @@ public class DuelManager {
     private final Map<UUID, RoundsDuel> activeRoundsDuels;
     private final Map<UUID, Location> savedLocations;
     private final Set<UUID> playersInCountdown;
+    private final Map<UUID, BukkitRunnable> arenaBoundsCheckers;
     
     public DuelManager(CustomKitDuels plugin) {
         this.plugin = plugin;
@@ -30,6 +29,7 @@ public class DuelManager {
         this.activeRoundsDuels = new HashMap<>();
         this.savedLocations = new HashMap<>();
         this.playersInCountdown = new HashSet<>();
+        this.arenaBoundsCheckers = new HashMap<>();
     }
     
     public void sendDuelRequest(Player challenger, Player target, Kit kit) {
@@ -215,11 +215,19 @@ public class DuelManager {
                     challenger.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
                     target.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
                     
+                    // Play note block sound
+                    challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    
                     countdown--;
                 } else {
                     // Start the duel
                     challenger.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Duel has begun!", 0, 40, 10);
                     target.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Duel has begun!", 0, 40, 10);
+                    
+                    // Play start sound
+                    challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
+                    target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
                     
                     // Remove from countdown and start actual duel
                     playersInCountdown.remove(challenger.getUniqueId());
@@ -283,11 +291,19 @@ public class DuelManager {
                     challenger.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
                     target.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
                     
+                    // Play note block sound
+                    challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    
                     countdown--;
                 } else {
                     // Start the rounds duel
                     challenger.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round 1 - First to " + targetRounds + "!", 0, 40, 10);
                     target.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round 1 - First to " + targetRounds + "!", 0, 40, 10);
+                    
+                    // Play start sound
+                    challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
+                    target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
                     
                     // Remove from countdown and start actual rounds duel
                     playersInCountdown.remove(challenger.getUniqueId());
@@ -309,6 +325,10 @@ public class DuelManager {
         // Prepare players
         preparePlayer(challenger, kit);
         preparePlayer(target, kit);
+        
+        // Start arena bounds checking
+        startArenaBoundsChecking(challenger, arena);
+        startArenaBoundsChecking(target, arena);
         
         // Send messages
         challenger.sendMessage(ChatColor.GREEN + "Duel started against " + target.getName() + "!");
@@ -333,6 +353,14 @@ public class DuelManager {
         preparePlayer(challenger, kit);
         preparePlayer(target, kit);
         
+        // Start arena bounds checking
+        startArenaBoundsChecking(challenger, arena);
+        startArenaBoundsChecking(target, arena);
+        
+        // Show scoreboard
+        plugin.getScoreboardManager().showDuelScoreboard(challenger, roundsDuel);
+        plugin.getScoreboardManager().showDuelScoreboard(target, roundsDuel);
+        
         // Send messages
         challenger.sendMessage(ChatColor.GREEN + "Rounds duel started! " + roundsDuel.getProgressString());
         target.sendMessage(ChatColor.GREEN + "Rounds duel started! " + roundsDuel.getProgressString());
@@ -346,16 +374,74 @@ public class DuelManager {
         }
     }
     
+    private void startArenaBoundsChecking(Player player, Arena arena) {
+        BukkitRunnable boundsChecker = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline() || !isInAnyDuel(player)) {
+                    this.cancel();
+                    arenaBoundsCheckers.remove(player.getUniqueId());
+                    return;
+                }
+                
+                if (!isPlayerInArena(player, arena)) {
+                    // Player is outside arena bounds - teleport back to spawn
+                    RoundsDuel roundsDuel = activeRoundsDuels.get(player.getUniqueId());
+                    if (roundsDuel != null) {
+                        Location spawnPoint = player.equals(roundsDuel.getPlayer1()) ? 
+                            arena.getSpawn1() : arena.getSpawn2();
+                        player.teleport(spawnPoint);
+                        player.sendMessage(ChatColor.RED + "You cannot leave the arena during a duel!");
+                        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+                    } else {
+                        Duel duel = activeDuels.get(player.getUniqueId());
+                        if (duel != null) {
+                            Location spawnPoint = player.equals(duel.getPlayer1()) ? 
+                                arena.getSpawn1() : arena.getSpawn2();
+                            player.teleport(spawnPoint);
+                            player.sendMessage(ChatColor.RED + "You cannot leave the arena during a duel!");
+                            player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+                        }
+                    }
+                }
+            }
+        };
+        
+        boundsChecker.runTaskTimer(plugin, 20L, 20L); // Check every second
+        arenaBoundsCheckers.put(player.getUniqueId(), boundsChecker);
+    }
+    
     private void preparePlayer(Player player, Kit kit) {
         // Clear player
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         
-        // Set health and hunger
-        player.setHealth(20.0);
+        // Get kit settings
+        double kitHearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kit.getName());
+        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(player.getUniqueId(), kit.getName());
+        
+        // Set health based on kit settings (convert hearts to health points)
+        double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points
+        player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
+        player.setHealth(maxHealth);
+        
+        // Set hunger
         player.setFoodLevel(20);
         player.setSaturation(20);
+        
+        // Disable natural health regeneration if kit setting is disabled
+        if (!naturalRegen) {
+            // Add a permanent effect that prevents natural regeneration
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.HUNGER, 
+                Integer.MAX_VALUE, 
+                255, 
+                false, 
+                false, 
+                false
+            ));
+        }
         
         // Set gamemode
         player.setGameMode(GameMode.SURVIVAL);
@@ -384,6 +470,12 @@ public class DuelManager {
     }
     
     public void endDuel(Player player, boolean died) {
+        // Stop arena bounds checking
+        BukkitRunnable boundsChecker = arenaBoundsCheckers.remove(player.getUniqueId());
+        if (boundsChecker != null) {
+            boundsChecker.cancel();
+        }
+        
         // Check if it's a rounds duel first
         RoundsDuel roundsDuel = activeRoundsDuels.get(player.getUniqueId());
         if (roundsDuel != null) {
@@ -398,6 +490,11 @@ public class DuelManager {
         Player opponent = duel.getOpponent(player);
         if (opponent != null) {
             activeDuels.remove(opponent.getUniqueId());
+            // Stop opponent's bounds checking too
+            BukkitRunnable opponentBoundsChecker = arenaBoundsCheckers.remove(opponent.getUniqueId());
+            if (opponentBoundsChecker != null) {
+                opponentBoundsChecker.cancel();
+            }
         }
         
         // Determine winner
@@ -418,11 +515,13 @@ public class DuelManager {
             }
         }
         
-        // Restore players
-        restorePlayer(player);
-        if (opponent != null && opponent.isOnline()) {
-            restorePlayer(opponent);
-        }
+        // Restore players after 2 seconds
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            restorePlayer(player);
+            if (opponent != null && opponent.isOnline()) {
+                restorePlayer(opponent);
+            }
+        }, 40L); // 2 seconds
     }
     
     private void endRoundsDuelRound(Player player, boolean died) {
@@ -435,6 +534,10 @@ public class DuelManager {
         
         // Add win to the winner
         roundsDuel.addWin(roundWinner);
+        
+        // Update scoreboards
+        plugin.getScoreboardManager().updateDuelScoreboard(roundsDuel.getPlayer1(), roundsDuel);
+        plugin.getScoreboardManager().updateDuelScoreboard(roundsDuel.getPlayer2(), roundsDuel);
         
         // Send round result messages
         if (roundWinner != null && roundLoser != null) {
@@ -458,6 +561,16 @@ public class DuelManager {
             activeRoundsDuels.remove(roundsDuel.getPlayer1().getUniqueId());
             activeRoundsDuels.remove(roundsDuel.getPlayer2().getUniqueId());
             
+            // Stop arena bounds checking
+            BukkitRunnable boundsChecker1 = arenaBoundsCheckers.remove(roundsDuel.getPlayer1().getUniqueId());
+            if (boundsChecker1 != null) boundsChecker1.cancel();
+            BukkitRunnable boundsChecker2 = arenaBoundsCheckers.remove(roundsDuel.getPlayer2().getUniqueId());
+            if (boundsChecker2 != null) boundsChecker2.cancel();
+            
+            // Remove scoreboards
+            plugin.getScoreboardManager().removeDuelScoreboard(roundsDuel.getPlayer1());
+            plugin.getScoreboardManager().removeDuelScoreboard(roundsDuel.getPlayer2());
+            
             // Send final messages
             String finalMessage = ChatColor.GOLD + "🏆 " + overallWinner.getName() + " won the rounds duel " + roundsDuel.getScoreString() + "! 🏆";
             overallWinner.sendMessage(finalMessage);
@@ -470,21 +583,23 @@ public class DuelManager {
                 }
             }
             
-            // Restore players
-            restorePlayer(roundsDuel.getPlayer1());
-            restorePlayer(roundsDuel.getPlayer2());
+            // Restore players after 2 seconds
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                restorePlayer(roundsDuel.getPlayer1());
+                restorePlayer(roundsDuel.getPlayer2());
+            }, 40L); // 2 seconds
         } else {
             // Regenerate arena if enabled
             if (roundsDuel.getArena().hasRegeneration()) {
                 plugin.getArenaManager().regenerateArena(roundsDuel.getArena());
             }
             
-            // Start next round after a short delay
+            // Start next round after a 2 second delay
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (roundsDuel.isActive() && roundWinner.isOnline() && roundLoser.isOnline()) {
                     startNextRound(roundsDuel);
                 }
-            }, 60L); // 3 second delay
+            }, 40L); // 2 second delay
         }
     }
     
@@ -496,6 +611,8 @@ public class DuelManager {
             // End duel if someone disconnected
             activeRoundsDuels.remove(player1.getUniqueId());
             activeRoundsDuels.remove(player2.getUniqueId());
+            plugin.getScoreboardManager().removeDuelScoreboard(player1);
+            plugin.getScoreboardManager().removeDuelScoreboard(player2);
             if (player1.isOnline()) restorePlayer(player1);
             if (player2.isOnline()) restorePlayer(player2);
             return;
@@ -509,6 +626,10 @@ public class DuelManager {
         preparePlayer(player1, roundsDuel.getKit());
         preparePlayer(player2, roundsDuel.getKit());
         
+        // Update scoreboards
+        plugin.getScoreboardManager().updateDuelScoreboard(player1, roundsDuel);
+        plugin.getScoreboardManager().updateDuelScoreboard(player2, roundsDuel);
+        
         // Send round start messages
         String roundMessage = ChatColor.GREEN + "Round " + roundsDuel.getCurrentRound() + " starting!";
         String progressMessage = ChatColor.AQUA + roundsDuel.getProgressString();
@@ -518,9 +639,9 @@ public class DuelManager {
         player2.sendMessage(roundMessage);
         player2.sendMessage(progressMessage);
         
-        // Start countdown for next round
+        // Start countdown for next round with 5 seconds for inventory organization
         new BukkitRunnable() {
-            int countdown = 3;
+            int countdown = 5;
             
             @Override
             public void run() {
@@ -533,10 +654,20 @@ public class DuelManager {
                     String message = ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + " in " + ChatColor.RED + countdown + ChatColor.YELLOW + "...";
                     player1.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
                     player2.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
+                    
+                    // Play note block sound
+                    player1.playSound(player1.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    player2.playSound(player2.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+                    
                     countdown--;
                 } else {
                     player1.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + "!", 0, 40, 10);
                     player2.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + "!", 0, 40, 10);
+                    
+                    // Play start sound
+                    player1.playSound(player1.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
+                    player2.playSound(player2.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
+                    
                     this.cancel();
                 }
             }
@@ -554,7 +685,8 @@ public class DuelManager {
             player.removePotionEffect(effect.getType());
         }
         
-        // Reset health and hunger
+        // Reset health to default
+        player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).setBaseValue(20.0);
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20);
@@ -567,8 +699,14 @@ public class DuelManager {
         if (savedLocation != null) {
             player.teleport(savedLocation);
         } else {
-            // Fallback to spawn
-            player.teleport(player.getWorld().getSpawnLocation());
+            // Try to teleport to spawn
+            Location spawn = plugin.getSpawnManager().getSpawn();
+            if (spawn != null) {
+                player.teleport(spawn);
+            } else {
+                // Fallback to world spawn
+                player.teleport(player.getWorld().getSpawnLocation());
+            }
         }
         
         player.updateInventory();
@@ -616,6 +754,12 @@ public class DuelManager {
     }
     
     public void cleanupAllDuels() {
+        // Cancel all arena bounds checkers
+        for (BukkitRunnable checker : arenaBoundsCheckers.values()) {
+            checker.cancel();
+        }
+        arenaBoundsCheckers.clear();
+        
         // End all active duels
         for (UUID playerId : new ArrayList<>(activeDuels.keySet())) {
             Player player = plugin.getServer().getPlayer(playerId);
@@ -631,6 +775,7 @@ public class DuelManager {
                 RoundsDuel roundsDuel = activeRoundsDuels.get(playerId);
                 if (roundsDuel != null) {
                     roundsDuel.setActive(false);
+                    plugin.getScoreboardManager().removeDuelScoreboard(player);
                     restorePlayer(player);
                 }
             }

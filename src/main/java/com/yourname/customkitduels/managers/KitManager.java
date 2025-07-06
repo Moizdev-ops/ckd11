@@ -74,7 +74,7 @@ public class KitManager {
         
         for (String kitName : config.getKeys(false)) {
             String key = playerId.toString() + "_" + kitName;
-            kitHearts.put(key, config.getDouble(kitName + ".hearts", 20.0));
+            kitHearts.put(key, config.getDouble(kitName + ".hearts", 10.0)); // Changed default to 10
             kitNaturalRegen.put(key, config.getBoolean(kitName + ".naturalRegen", true));
         }
     }
@@ -256,7 +256,7 @@ public class KitManager {
     // Kit Settings Methods
     public double getKitHearts(UUID playerId, String kitName) {
         String key = playerId.toString() + "_" + kitName;
-        return kitHearts.getOrDefault(key, 20.0);
+        return kitHearts.getOrDefault(key, 10.0); // Changed default to 10
     }
     
     public void setKitHearts(UUID playerId, String kitName, double hearts) {

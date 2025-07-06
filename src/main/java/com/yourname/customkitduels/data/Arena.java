@@ -9,9 +9,13 @@ public class Arena {
     private Location pos2;
     private Location spawn1;
     private Location spawn2;
+    private boolean regeneration;
+    private String schematicName;
     
     public Arena(String name) {
         this.name = name;
+        this.regeneration = false;
+        this.schematicName = name.toLowerCase() + "_arena";
     }
     
     public String getName() {
@@ -50,7 +54,27 @@ public class Arena {
         this.spawn2 = spawn2;
     }
     
+    public boolean hasRegeneration() {
+        return regeneration;
+    }
+    
+    public void setRegeneration(boolean regeneration) {
+        this.regeneration = regeneration;
+    }
+    
+    public String getSchematicName() {
+        return schematicName;
+    }
+    
+    public void setSchematicName(String schematicName) {
+        this.schematicName = schematicName;
+    }
+    
     public boolean isComplete() {
         return pos1 != null && pos2 != null && spawn1 != null && spawn2 != null;
+    }
+    
+    public boolean isRegenerationReady() {
+        return isComplete() && regeneration && schematicName != null && !schematicName.isEmpty();
     }
 }

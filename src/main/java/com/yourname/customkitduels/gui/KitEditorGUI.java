@@ -34,7 +34,7 @@ public class KitEditorGUI implements Listener {
     private boolean isActive = true;
     private boolean isBulkMode = false;
     private ItemStack bulkItem = null;
-    private boolean isNavigating = false; // Add navigation state
+    private boolean isNavigating = false;
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
         this.plugin = plugin;
@@ -98,7 +98,8 @@ public class KitEditorGUI implements Listener {
             meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Left-click to add an item",
                 ChatColor.GRAY + "Right-click to modify (if item present)",
-                ChatColor.YELLOW + "Shift-click to enter bulk mode"
+                ChatColor.YELLOW + "Shift-click to enter bulk mode",
+                ChatColor.GREEN + "💡 TIP: Use bulk mode for quick filling!"
             ));
             glassPane.setItemMeta(meta);
             gui.setItem(slot, glassPane);
@@ -163,20 +164,46 @@ public class KitEditorGUI implements Listener {
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
         
-        // Bulk mode indicator
+        // ENHANCED BULK MODE BUTTON - More prominent placement
+        ItemStack bulkButton = new ItemStack(isBulkMode ? Material.LIME_STAINED_GLASS_PANE : Material.YELLOW_STAINED_GLASS_PANE);
+        ItemMeta bulkMeta = bulkButton.getItemMeta();
+        
         if (isBulkMode) {
-            ItemStack bulkIndicator = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
-            ItemMeta bulkMeta = bulkIndicator.getItemMeta();
-            bulkMeta.setDisplayName(ChatColor.GREEN + "Bulk Mode: ON");
+            bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 BULK MODE: ACTIVE");
             bulkMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Item: " + (bulkItem != null ? bulkItem.getType().name() : "None"),
-                ChatColor.GRAY + "Click slots to place this item",
-                ChatColor.RED + "Right-click to exit bulk mode"
+                ChatColor.YELLOW + "Click slots to place this item",
+                ChatColor.RED + "Right-click here to exit bulk mode",
+                ChatColor.GOLD + "💡 Left-click to change bulk item"
             ));
-            bulkIndicator.setItemMeta(bulkMeta);
-            gui.setItem(47, bulkIndicator);
         } else {
-            gui.setItem(47, null);
+            bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 ACTIVATE BULK MODE");
+            bulkMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Quick-fill multiple slots with the same item",
+                ChatColor.GREEN + "Click to select an item for bulk placement",
+                ChatColor.AQUA + "Or shift-click any slot with an item",
+                ChatColor.GOLD + "💡 Great for arrows, blocks, food, etc!"
+            ));
+        }
+        
+        bulkButton.setItemMeta(bulkMeta);
+        gui.setItem(47, bulkButton); // More prominent position
+        
+        // Add bulk mode helper button
+        if (!isBulkMode) {
+            ItemStack helperButton = new ItemStack(Material.BOOK);
+            ItemMeta helperMeta = helperButton.getItemMeta();
+            helperMeta.setDisplayName(ChatColor.AQUA + "📖 Bulk Mode Help");
+            helperMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Bulk mode allows you to quickly fill",
+                ChatColor.GRAY + "multiple slots with the same item.",
+                ChatColor.YELLOW + "Ways to activate:",
+                ChatColor.WHITE + "• Click the yellow bulk button",
+                ChatColor.WHITE + "• Shift-click any slot with an item",
+                ChatColor.GREEN + "Perfect for: arrows, food, blocks!"
+            ));
+            helperButton.setItemMeta(helperMeta);
+            gui.setItem(46, helperButton);
         }
     }
     
@@ -212,10 +239,20 @@ public class KitEditorGUI implements Listener {
         
         plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType + ", Active: " + isActive + ", BulkMode: " + isBulkMode);
         
-        // Handle bulk mode indicator
-        if (slot == 47 && isBulkMode) {
-            if (clickType == ClickType.RIGHT) {
-                exitBulkMode();
+        // Handle enhanced bulk mode button
+        if (slot == 47) {
+            if (isBulkMode) {
+                if (clickType == ClickType.RIGHT) {
+                    exitBulkMode();
+                    return;
+                } else if (clickType == ClickType.LEFT) {
+                    // Change bulk item
+                    openCategorySelectorForBulk(0);
+                    return;
+                }
+            } else {
+                // Activate bulk mode
+                openCategorySelectorForBulk(0);
                 return;
             }
         }
@@ -245,7 +282,7 @@ public class KitEditorGUI implements Listener {
             if (isBulkMode && bulkItem != null) {
                 if (slot < 36) { // Only main inventory slots for bulk mode
                     setSlotItem(slot, bulkItem.clone());
-                    player.sendMessage(ChatColor.GREEN + "Added " + bulkItem.getType().name() + " to slot " + (slot + 1) + "!");
+                    player.sendMessage(ChatColor.GREEN + "🔥 Bulk placed " + bulkItem.getType().name() + " in slot " + (slot + 1) + "!");
                     return;
                 } else {
                     player.sendMessage(ChatColor.RED + "Bulk mode only works for main inventory slots!");
@@ -294,15 +331,16 @@ public class KitEditorGUI implements Listener {
         isBulkMode = true;
         bulkItem = item.clone();
         setupControlButtons(); // Refresh to show bulk indicator
-        player.sendMessage(ChatColor.GREEN + "Bulk mode activated! Click slots to place " + item.getType().name());
-        player.sendMessage(ChatColor.YELLOW + "Right-click the green indicator to exit bulk mode");
+        player.sendMessage(ChatColor.GREEN + "🔥 Bulk mode activated! Click slots to place " + item.getType().name());
+        player.sendMessage(ChatColor.YELLOW + "Right-click the green button to exit bulk mode");
+        player.sendMessage(ChatColor.AQUA + "Left-click the green button to change bulk item");
     }
     
     private void exitBulkMode() {
         isBulkMode = false;
         bulkItem = null;
         setupControlButtons(); // Refresh to hide bulk indicator
-        player.sendMessage(ChatColor.YELLOW + "Bulk mode deactivated");
+        player.sendMessage(ChatColor.YELLOW + "🔥 Bulk mode deactivated");
     }
     
     private void openCategorySelectorForBulk(int slot) {

@@ -474,6 +474,11 @@ public class DuelManager {
             restorePlayer(roundsDuel.getPlayer1());
             restorePlayer(roundsDuel.getPlayer2());
         } else {
+            // Regenerate arena if enabled
+            if (roundsDuel.getArena().hasRegeneration()) {
+                plugin.getArenaManager().regenerateArena(roundsDuel.getArena());
+            }
+            
             // Start next round after a short delay
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (roundsDuel.isActive() && roundWinner.isOnline() && roundLoser.isOnline()) {

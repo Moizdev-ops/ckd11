@@ -65,13 +65,13 @@ public class ArenaEditorGUI implements Listener {
             pos1Meta.setLore(Arrays.asList(
                 ChatColor.GREEN + "✓ Set at: " + formatLocation(arena.getPos1()),
                 ChatColor.GRAY + "Click to change position",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         } else {
             pos1Meta.setLore(Arrays.asList(
                 ChatColor.RED + "✗ Not set",
                 ChatColor.GRAY + "Click to set position",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         }
         pos1Item.setItemMeta(pos1Meta);
@@ -85,13 +85,13 @@ public class ArenaEditorGUI implements Listener {
             pos2Meta.setLore(Arrays.asList(
                 ChatColor.GREEN + "✓ Set at: " + formatLocation(arena.getPos2()),
                 ChatColor.GRAY + "Click to change position",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         } else {
             pos2Meta.setLore(Arrays.asList(
                 ChatColor.RED + "✗ Not set",
                 ChatColor.GRAY + "Click to set position",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         }
         pos2Item.setItemMeta(pos2Meta);
@@ -105,13 +105,13 @@ public class ArenaEditorGUI implements Listener {
             spawn1Meta.setLore(Arrays.asList(
                 ChatColor.GREEN + "✓ Set at: " + formatLocation(arena.getSpawn1()),
                 ChatColor.GRAY + "Click to change spawn point",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         } else {
             spawn1Meta.setLore(Arrays.asList(
                 ChatColor.RED + "✗ Not set",
                 ChatColor.GRAY + "Click to set spawn point",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         }
         spawn1Item.setItemMeta(spawn1Meta);
@@ -125,13 +125,13 @@ public class ArenaEditorGUI implements Listener {
             spawn2Meta.setLore(Arrays.asList(
                 ChatColor.GREEN + "✓ Set at: " + formatLocation(arena.getSpawn2()),
                 ChatColor.GRAY + "Click to change spawn point",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         } else {
             spawn2Meta.setLore(Arrays.asList(
                 ChatColor.RED + "✗ Not set",
                 ChatColor.GRAY + "Click to set spawn point",
-                ChatColor.AQUA + "Then shift+right-click a block"
+                ChatColor.AQUA + "Then shift+left-click in air"
             ));
         }
         spawn2Item.setItemMeta(spawn2Meta);
@@ -158,21 +158,6 @@ public class ArenaEditorGUI implements Listener {
         }
         regenItem.setItemMeta(regenMeta);
         gui.setItem(22, regenItem);
-        
-        // Generate schematic button (only if positions are set)
-        if (arena.getPos1() != null && arena.getPos2() != null) {
-            ItemStack schematicItem = new ItemStack(Material.STRUCTURE_BLOCK);
-            ItemMeta schematicMeta = schematicItem.getItemMeta();
-            schematicMeta.setDisplayName(ChatColor.GOLD + "Generate Schematic");
-            schematicMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Create a schematic of the arena",
-                ChatColor.GRAY + "for regeneration purposes",
-                ChatColor.YELLOW + "File: " + arena.getSchematicName() + ".schem",
-                ChatColor.GREEN + "Click to generate"
-            ));
-            schematicItem.setItemMeta(schematicMeta);
-            gui.setItem(31, schematicItem);
-        }
         
         // Save button
         ItemStack saveItem = new ItemStack(Material.EMERALD_BLOCK);
@@ -242,9 +227,6 @@ public class ArenaEditorGUI implements Listener {
             case 22: // Regeneration toggle
                 toggleRegeneration();
                 break;
-            case 31: // Generate schematic
-                generateSchematic();
-                break;
             case 39: // Save
                 saveArena();
                 break;
@@ -265,7 +247,8 @@ public class ArenaEditorGUI implements Listener {
                          type.equals("spawn1") ? "Spawn Point 1" : "Spawn Point 2";
         
         player.sendMessage(ChatColor.YELLOW + "Setting " + typeName + " for arena " + arena.getName());
-        player.sendMessage(ChatColor.AQUA + "Shift+Right-click a block to set the position");
+        player.sendMessage(ChatColor.AQUA + "Shift+Left-click in air to set the position");
+        player.sendActionBar(ChatColor.GOLD + "Shift+Left-click in air to set position");
         player.sendMessage(ChatColor.GRAY + "Type 'cancel' in chat to cancel");
     }
     
@@ -280,30 +263,30 @@ public class ArenaEditorGUI implements Listener {
             return;
         }
         
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && interactPlayer.isSneaking()) {
+        if (event.getAction() == Action.LEFT_CLICK_AIR && interactPlayer.isSneaking()) {
             event.setCancelled(true);
             
             String type = positionType.remove(player.getUniqueId());
             waitingForPosition.remove(player.getUniqueId());
             
-            org.bukkit.Location clickedLocation = event.getClickedBlock().getLocation();
+            org.bukkit.Location playerLocation = player.getLocation();
             
             switch (type) {
                 case "pos1":
-                    arena.setPos1(clickedLocation);
-                    player.sendMessage(ChatColor.GREEN + "Position 1 set at " + formatLocation(clickedLocation));
+                    arena.setPos1(playerLocation);
+                    player.sendMessage(ChatColor.GREEN + "Position 1 set at " + formatLocation(playerLocation));
                     break;
                 case "pos2":
-                    arena.setPos2(clickedLocation);
-                    player.sendMessage(ChatColor.GREEN + "Position 2 set at " + formatLocation(clickedLocation));
+                    arena.setPos2(playerLocation);
+                    player.sendMessage(ChatColor.GREEN + "Position 2 set at " + formatLocation(playerLocation));
                     break;
                 case "spawn1":
-                    arena.setSpawn1(clickedLocation.add(0.5, 1, 0.5)); // Center and raise by 1 block
-                    player.sendMessage(ChatColor.GREEN + "Spawn Point 1 set at " + formatLocation(arena.getSpawn1()));
+                    arena.setSpawn1(playerLocation);
+                    player.sendMessage(ChatColor.GREEN + "Spawn Point 1 set at " + formatLocation(playerLocation));
                     break;
                 case "spawn2":
-                    arena.setSpawn2(clickedLocation.add(0.5, 1, 0.5)); // Center and raise by 1 block
-                    player.sendMessage(ChatColor.GREEN + "Spawn Point 2 set at " + formatLocation(arena.getSpawn2()));
+                    arena.setSpawn2(playerLocation);
+                    player.sendMessage(ChatColor.GREEN + "Spawn Point 2 set at " + formatLocation(playerLocation));
                     break;
             }
             
@@ -320,34 +303,22 @@ public class ArenaEditorGUI implements Listener {
         
         if (arena.hasRegeneration()) {
             player.sendMessage(ChatColor.GREEN + "Arena regeneration enabled!");
-            player.sendMessage(ChatColor.YELLOW + "Don't forget to generate a schematic!");
+            // Auto-generate schematic if positions are set
+            if (arena.getPos1() != null && arena.getPos2() != null) {
+                try {
+                    plugin.getArenaManager().generateSchematic(arena, player);
+                    player.sendMessage(ChatColor.GREEN + "Schematic generated automatically!");
+                } catch (Exception e) {
+                    player.sendMessage(ChatColor.RED + "Failed to generate schematic: " + e.getMessage());
+                }
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Set both positions to auto-generate schematic!");
+            }
         } else {
             player.sendMessage(ChatColor.YELLOW + "Arena regeneration disabled.");
         }
         
         setupGUI(); // Refresh GUI
-    }
-    
-    private void generateSchematic() {
-        if (arena.getPos1() == null || arena.getPos2() == null) {
-            player.sendMessage(ChatColor.RED + "Both positions must be set before generating a schematic!");
-            return;
-        }
-        
-        // Check if FAWE is available
-        if (!plugin.getServer().getPluginManager().isPluginEnabled("FastAsyncWorldEdit")) {
-            player.sendMessage(ChatColor.RED + "FastAsyncWorldEdit (FAWE) is required for schematic generation!");
-            return;
-        }
-        
-        try {
-            plugin.getArenaManager().generateSchematic(arena, player);
-            player.sendMessage(ChatColor.GREEN + "Schematic generated successfully!");
-            setupGUI(); // Refresh GUI
-        } catch (Exception e) {
-            player.sendMessage(ChatColor.RED + "Failed to generate schematic: " + e.getMessage());
-            plugin.getLogger().warning("Failed to generate schematic for arena " + arena.getName() + ": " + e.getMessage());
-        }
     }
     
     private void saveArena() {

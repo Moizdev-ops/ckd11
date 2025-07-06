@@ -1,89 +1,259 @@
 # CustomKitDuels
 
-A comprehensive Minecraft Spigot plugin for creating custom kit duels on your server.
+A comprehensive Minecraft Spigot plugin for creating custom kit duels with advanced features and beautiful GUIs.
 
-## Features
+## 🌟 Features
 
-### Player Features
-- **Custom Kit Creation**: Players can create and edit their own custom kits via intuitive GUI interfaces
-- **Kit Management**: Players can delete, list, and manage their personal kits
-- **Duel System**: Send duel requests to other players using your custom kits
-- **Duel Acceptance**: Accept incoming duel requests with a simple command
+### 🎮 Player Features
+- **Custom Kit Creation**: Create unlimited custom kits with intuitive GUI
+- **Kit Settings**: Configure kit health (1-20 hearts) and natural regeneration
+- **Bulk Mode**: Quickly fill multiple slots with the same item
+- **Rounds Duels**: First-to-X rounds system with live scoreboard
+- **Item Modification**: Enchant items, change stack sizes, modify potions
+- **Arena System**: Multiple arenas with automatic regeneration support
 
-### Admin Features
-- **Arena Management**: Set up duel arenas with defined boundaries and spawn points
-- **Configuration**: Reload plugin configuration without server restart
-- **Permission System**: Control who can use which features
+### ⚔️ Duel System
+- **Rounds-based Duels**: Choose from 1-10 rounds to win
+- **Live Scoreboard**: Real-time duel statistics and progress
+- **Countdown System**: 5-second countdown with note block sounds
+- **Inventory Management**: 2-second preparation time between rounds
+- **Arena Regeneration**: Automatic arena restoration using FAWE
 
-### Technical Features
-- **Data Persistence**: Kits are stored per player in YAML format
-- **Graceful Handling**: Proper cleanup when players disconnect or die during duels
-- **Modern API**: Built for Minecraft 1.21.4 using modern Spigot practices
-- **Safety Features**: Prevents teleportation and certain commands during duels
+### 🛠️ Admin Features
+- **Arena Management**: Create and configure arenas with GUI editor
+- **Spawn System**: Set global spawn point for post-duel teleportation
+- **Category Editor**: Customize item categories for kit creation
+- **Configuration**: Extensive customization options
+- **Permissions**: Granular permission system
 
-## Commands
+## 📋 Commands
 
 ### Player Commands
-- `/ckd createkit <name>` - Opens GUI to save current inventory as a kit
-- `/ckd editkit <name>` - Opens GUI to modify a saved kit
-- `/ckd deletekit <name>` - Deletes a player's kit
-- `/ckd listkits` - Lists your available kits
-- `/ckd duel <player> <kit>` - Sends a duel request to another player
-- `/ckd accept` - Accepts the latest duel request
+```
+/ckd createkit <name>     - Create a new custom kit
+/ckd editkit <name>       - Edit an existing kit
+/ckd deletekit <name>     - Delete a kit
+/ckd listkits             - List your kits
+/ckd duel <player> <kit>  - Challenge a player to a duel
+/ckd accept               - Accept a duel request
+```
 
 ### Admin Commands
-- `/ckd setarena <name>` - Creates a new arena
-- `/ckd setpos1 <arena>` - Sets the first corner of an arena
-- `/ckd setpos2 <arena>` - Sets the second corner of an arena
-- `/ckd setspawn1 <arena>` - Sets the first spawn point in an arena
-- `/ckd setspawn2 <arena>` - Sets the second spawn point in an arena
-- `/ckd reload` - Reloads plugin configuration
+```
+/ckd arena create <name>     - Create a new arena
+/ckd arena editor            - Open arena selection GUI
+/ckd arena list              - List all arenas
+/ckd arena delete <name>     - Delete an arena
+/ckd setspawn                - Set the global spawn point
+/ckd editcategory <category> - Edit item categories
+/ckd reload                  - Reload configuration
+```
 
-## Permissions
+## 🔧 Installation
 
-- `customkitduels.use` - Allows basic use of the plugin (default: true)
-- `customkitduels.admin` - Allows admin commands (default: op)
+1. **Download** the plugin JAR file
+2. **Place** it in your server's `plugins` folder
+3. **Restart** your server
+4. **Configure** arenas using admin commands
+5. **Set spawn** with `/ckd setspawn`
+6. Players can start creating kits and dueling!
 
-## Installation
+## ⚙️ Configuration
 
-1. Download the plugin JAR file
-2. Place it in your server's `plugins` folder
-3. Restart your server
-4. Configure arenas using the admin commands
-5. Players can start creating kits and dueling!
+### Main Config (`config.yml`)
+```yaml
+settings:
+  max-kits-per-player: 10
+  duel-request-timeout: 30
+  blocked-commands:
+    - "tp"
+    - "teleport"
+    - "home"
+```
 
-## Configuration
+### Scoreboard (`scoreboard.yml`)
+Customize the duel scoreboard with hex colors and placeholders:
+```yaml
+title: "&#00FF98&lPakMC"
+lines:
+  - " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)"
+  - " &#C3F6E2| Duration: &#00FF98<duration>"
+  - " &#C3F6E2| Round: &#00FF98<current_round>"
+```
 
-The plugin generates a `config.yml` file with customizable settings:
+**Available Placeholders:**
+- `<rounds>` - Target rounds to win
+- `<duration>` - Duel duration (MM:SS)
+- `<current_round>` - Current round number
+- `<player_score>` - Player's wins
+- `<opponent_score>` - Opponent's wins
+- `<player_name>` - Player's name
+- `<opponent_name>` - Opponent's name
 
-- Maximum kits per player
-- Duel request timeout
-- Blocked commands during duels
-- Custom messages
-- Arena configurations
+## 🏟️ Arena Setup
 
-## Arena Setup
+1. **Create Arena**: `/ckd arena create <name>`
+2. **Open Editor**: `/ckd arena editor`
+3. **Select Arena** from the GUI
+4. **Set Positions**: Use Shift+Left-click in air to set corners and spawn points
+5. **Enable Regeneration**: Toggle arena regeneration (requires FAWE)
+6. **Save**: Click the save button
 
-1. Use `/ckd setarena <name>` to create a new arena
-2. Set the arena boundaries with `/ckd setpos1 <arena>` and `/ckd setpos2 <arena>`
-3. Set spawn points with `/ckd setspawn1 <arena>` and `/ckd setspawn2 <arena>`
-4. The arena is now ready for duels!
+### Arena Requirements
+- **Position 1 & 2**: Define arena boundaries
+- **Spawn Point 1 & 2**: Player spawn locations
+- **FAWE Plugin**: Required for arena regeneration
 
-## How Duels Work
+## 🎯 Kit Creation Guide
 
-1. Players create custom kits using `/ckd createkit <name>`
-2. Challenge another player with `/ckd duel <player> <kit>`
-3. The challenged player accepts with `/ckd accept`
-4. Both players are teleported to a random available arena
-5. Players receive their selected kit and the duel begins
-6. When one player dies or quits, the duel ends
-7. Both players are restored and teleported back to their original locations
+### Basic Kit Creation
+1. Use `/ckd createkit <name>`
+2. **Add Items**: Left-click empty slots to browse categories
+3. **Modify Items**: Right-click items to enchant/modify
+4. **Bulk Mode**: Shift-click for quick item placement
+5. **Kit Settings**: Configure health and regeneration
+6. **Save**: Click the emerald to save your kit
 
-## Support
+### Kit Settings
+- **Hearts**: Set player health (1-20 hearts)
+- **Natural Regen**: Enable/disable health regeneration from saturation
 
-For issues, suggestions, or contributions, please visit the plugin's repository or contact the developer.
+### Bulk Mode
+- **Activate**: Shift-click any slot or use the bulk button
+- **Quick Fill**: Click multiple slots to place the same item
+- **Exit**: Right-click the bulk mode button
 
-## Version
+## 🎮 How Duels Work
 
-Current version: 1.0.0
-Target Minecraft version: 1.21.4
+### Starting a Duel
+1. **Challenge**: `/ckd duel <player> <kit>`
+2. **Select Rounds**: Choose 1-10 rounds to win
+3. **Accept**: Target player uses `/ckd accept`
+4. **Countdown**: 4-second preparation countdown
+5. **Fight**: Duel begins!
+
+### Rounds System
+- **Win Condition**: First to reach target rounds wins
+- **Round End**: Player death ends the round
+- **Preparation**: 2-second break + 5-second countdown
+- **Scoreboard**: Live updates during the duel
+- **Arena Regen**: Automatic restoration between rounds
+
+### Post-Duel
+- **Restoration**: Players are restored to original state
+- **Teleport**: 2-second delay, then teleport to spawn
+- **Scoreboard**: Removed after duel completion
+
+## 🔐 Permissions
+
+```yaml
+customkitduels.use:
+  description: Basic plugin usage
+  default: true
+
+customkitduels.admin:
+  description: Admin commands and features
+  default: op
+```
+
+## 🔌 Dependencies
+
+### Required
+- **Spigot/Paper**: 1.21.4+
+- **Java**: 21+
+
+### Optional
+- **FastAsyncWorldEdit (FAWE)**: For arena regeneration
+- **WorldEdit**: Alternative to FAWE (limited features)
+
+## 📁 File Structure
+
+```
+plugins/CustomKitDuels/
+├── config.yml              # Main configuration
+├── scoreboard.yml           # Scoreboard customization
+├── spawn.yml               # Spawn location
+├── arenas/                 # Arena configurations
+│   ├── arena1.yml
+│   └── arena2.yml
+├── categories/             # Item categories
+│   ├── WEAPONS.yml
+│   ├── ARMOR.yml
+│   └── ...
+├── kits/                   # Player kits
+│   └── <uuid>.yml
+├── kit-settings/           # Kit configurations
+│   └── <uuid>.yml
+└── schematics/             # Arena schematics (FAWE)
+    ├── arena1_arena.schem
+    └── arena2_arena.schem
+```
+
+## 🎨 Customization
+
+### Item Categories
+Edit categories with `/ckd editcategory <category>`:
+- **WEAPONS** - Swords, axes, bows, etc.
+- **ARMOR** - All armor pieces and shields
+- **BLOCKS** - Building and utility blocks
+- **FOOD** - Food items and consumables
+- **POTIONS** - Potions and brewing items
+- **TOOLS** - Pickaxes, shovels, etc.
+- **UTILITY** - Ender pearls, fire charges, etc.
+- **MISC** - Books, music discs, etc.
+
+### Scoreboard Colors
+Use hex colors in `scoreboard.yml`:
+```yaml
+title: "&#FF0000&lRed Title"
+lines:
+  - "&#00FF00Green text"
+  - "&bAqua text with &#FFD700gold"
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Arena regeneration not working**
+- Install FastAsyncWorldEdit (FAWE)
+- Ensure arena positions are set
+- Check console for errors
+
+**Scoreboard not showing**
+- Verify `scoreboard.yml` syntax
+- Check for plugin conflicts
+- Restart server after changes
+
+**Kits not saving**
+- Check file permissions
+- Verify disk space
+- Check console for errors
+
+**Players stuck in duel**
+- Use `/ckd reload` to reset
+- Check arena boundaries
+- Verify spawn point is set
+
+### Performance Tips
+- Limit arena regeneration frequency
+- Use smaller arena sizes
+- Regular server restarts for optimal performance
+
+## 📞 Support
+
+For issues, suggestions, or contributions:
+- Check the console for error messages
+- Verify all dependencies are installed
+- Ensure proper permissions are set
+- Test with minimal plugins to isolate conflicts
+
+## 📄 License
+
+This plugin is provided as-is for educational and server use. Please respect the terms of use for any dependencies.
+
+---
+
+**Version**: 1.0.0  
+**Minecraft**: 1.21.4  
+**Java**: 21+

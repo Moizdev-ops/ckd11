@@ -96,10 +96,8 @@ public class KitEditorGUI implements Listener {
             ItemMeta meta = glassPane.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + "Slot #" + (slot + 1));
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Left-click to add an item",
-                ChatColor.GRAY + "Right-click to modify (if item present)",
-                ChatColor.YELLOW + "Shift-click to enter bulk mode",
-                ChatColor.GREEN + "💡 TIP: Use bulk mode for quick filling!"
+                ChatColor.GRAY + "Left-click to add item",
+                ChatColor.YELLOW + "Shift-click for bulk mode"
             ));
             glassPane.setItemMeta(meta);
             gui.setItem(slot, glassPane);
@@ -116,10 +114,7 @@ public class KitEditorGUI implements Listener {
             ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
             ItemMeta meta = glassPane.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + armorSlots[armorIndex] + " Slot");
-            meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Left-click to add " + armorSlots[armorIndex].toLowerCase(),
-                ChatColor.GRAY + "Right-click to modify (if armor present)"
-            ));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add " + armorSlots[armorIndex].toLowerCase()));
             glassPane.setItemMeta(meta);
             gui.setItem(guiSlot, glassPane);
         }
@@ -132,10 +127,7 @@ public class KitEditorGUI implements Listener {
             ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
             ItemMeta offhandMeta = offhandPane.getItemMeta();
             offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
-            offhandMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Left-click to add offhand item",
-                ChatColor.GRAY + "Right-click to modify (if item present)"
-            ));
+            offhandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add offhand item"));
             offhandPane.setItemMeta(offhandMeta);
             gui.setItem(40, offhandPane);
         }
@@ -145,14 +137,12 @@ public class KitEditorGUI implements Listener {
         ItemStack saveButton = new ItemStack(Material.EMERALD);
         ItemMeta saveMeta = saveButton.getItemMeta();
         saveMeta.setDisplayName(ChatColor.GREEN + "Save Kit");
-        saveMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to save this kit"));
         saveButton.setItemMeta(saveMeta);
         gui.setItem(45, saveButton);
         
         ItemStack cancelButton = new ItemStack(Material.REDSTONE);
         ItemMeta cancelMeta = cancelButton.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "Cancel");
-        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to cancel"));
         cancelButton.setItemMeta(cancelMeta);
         gui.setItem(53, cancelButton);
         
@@ -160,11 +150,18 @@ public class KitEditorGUI implements Listener {
         ItemStack clearButton = new ItemStack(Material.BARRIER);
         ItemMeta clearMeta = clearButton.getItemMeta();
         clearMeta.setDisplayName(ChatColor.YELLOW + "Clear All");
-        clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to clear all slots"));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
         
-        // ENHANCED BULK MODE BUTTON - More prominent placement
+        // Kit Settings button
+        ItemStack settingsButton = new ItemStack(Material.COMPARATOR);
+        ItemMeta settingsMeta = settingsButton.getItemMeta();
+        settingsMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Kit Settings");
+        settingsMeta.setLore(Arrays.asList(ChatColor.GRAY + "Configure kit health & regen"));
+        settingsButton.setItemMeta(settingsMeta);
+        gui.setItem(46, settingsButton);
+        
+        // ENHANCED BULK MODE BUTTON
         ItemStack bulkButton = new ItemStack(isBulkMode ? Material.LIME_STAINED_GLASS_PANE : Material.YELLOW_STAINED_GLASS_PANE);
         ItemMeta bulkMeta = bulkButton.getItemMeta();
         
@@ -172,39 +169,15 @@ public class KitEditorGUI implements Listener {
             bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 BULK MODE: ACTIVE");
             bulkMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Item: " + (bulkItem != null ? bulkItem.getType().name() : "None"),
-                ChatColor.YELLOW + "Click slots to place this item",
-                ChatColor.RED + "Right-click here to exit bulk mode",
-                ChatColor.GOLD + "💡 Left-click to change bulk item"
+                ChatColor.RED + "Right-click to exit"
             ));
         } else {
-            bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 ACTIVATE BULK MODE");
-            bulkMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Quick-fill multiple slots with the same item",
-                ChatColor.GREEN + "Click to select an item for bulk placement",
-                ChatColor.AQUA + "Or shift-click any slot with an item",
-                ChatColor.GOLD + "💡 Great for arrows, blocks, food, etc!"
-            ));
+            bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 BULK MODE");
+            bulkMeta.setLore(Arrays.asList(ChatColor.GRAY + "Quick-fill multiple slots"));
         }
         
         bulkButton.setItemMeta(bulkMeta);
-        gui.setItem(47, bulkButton); // More prominent position
-        
-        // Add bulk mode helper button
-        if (!isBulkMode) {
-            ItemStack helperButton = new ItemStack(Material.BOOK);
-            ItemMeta helperMeta = helperButton.getItemMeta();
-            helperMeta.setDisplayName(ChatColor.AQUA + "📖 Bulk Mode Help");
-            helperMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Bulk mode allows you to quickly fill",
-                ChatColor.GRAY + "multiple slots with the same item.",
-                ChatColor.YELLOW + "Ways to activate:",
-                ChatColor.WHITE + "• Click the yellow bulk button",
-                ChatColor.WHITE + "• Shift-click any slot with an item",
-                ChatColor.GREEN + "Perfect for: arrows, food, blocks!"
-            ));
-            helperButton.setItemMeta(helperMeta);
-            gui.setItem(46, helperButton);
-        }
+        gui.setItem(47, bulkButton);
     }
     
     public void open() {
@@ -276,6 +249,12 @@ public class KitEditorGUI implements Listener {
             return;
         }
         
+        if (slot == 46) { // Kit Settings button
+            plugin.getLogger().info("[DEBUG] Kit Settings button clicked by " + player.getName());
+            openKitSettings();
+            return;
+        }
+        
         // Handle slot selection (0-40: main inventory, armor, and offhand)
         if (slot <= 40) {
             // Handle bulk mode
@@ -333,7 +312,6 @@ public class KitEditorGUI implements Listener {
         setupControlButtons(); // Refresh to show bulk indicator
         player.sendMessage(ChatColor.GREEN + "🔥 Bulk mode activated! Click slots to place " + item.getType().name());
         player.sendMessage(ChatColor.YELLOW + "Right-click the green button to exit bulk mode");
-        player.sendMessage(ChatColor.AQUA + "Left-click the green button to change bulk item");
     }
     
     private void exitBulkMode() {
@@ -384,6 +362,17 @@ public class KitEditorGUI implements Listener {
         
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemModificationGUI(plugin, player, this, slot, item).open();
+        }, 1L);
+    }
+    
+    private void openKitSettings() {
+        plugin.getLogger().info("[DEBUG] Opening kit settings for " + player.getName());
+        
+        // Set navigation state to prevent cleanup
+        isNavigating = true;
+        
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new KitSettingsGUI(plugin, player, this, kitName).open();
         }, 1L);
     }
     

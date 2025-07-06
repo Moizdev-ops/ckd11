@@ -4,6 +4,7 @@ import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Arena;
 import com.yourname.customkitduels.data.Kit;
 import com.yourname.customkitduels.gui.ArenaEditorGUI;
+import com.yourname.customkitduels.gui.ArenaListGUI;
 import com.yourname.customkitduels.gui.CategoryEditorGUI;
 import com.yourname.customkitduels.gui.KitEditorGUI;
 import com.yourname.customkitduels.gui.RoundsSelectorGUI;
@@ -53,6 +54,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 return handleEditCategory(sender, args);
             case "arena":
                 return handleArenaCommand(sender, args);
+            case "setspawn":
+                return handleSetSpawn(sender);
             case "reload":
                 return handleReload(sender);
             default:
@@ -67,15 +70,16 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/ckd editkit <name> - Edit an existing kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd deletekit <name> - Delete a kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd listkits - List your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player (opens rounds selector)");
+        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player");
         sender.sendMessage(ChatColor.YELLOW + "/ckd accept - Accept a duel request");
         sender.sendMessage(ChatColor.YELLOW + "/ckd editcategory <category> - Edit item category");
         if (sender.hasPermission("customkitduels.admin")) {
             sender.sendMessage(ChatColor.AQUA + "Admin Commands:");
             sender.sendMessage(ChatColor.YELLOW + "/ckd arena create <name> - Create new arena");
-            sender.sendMessage(ChatColor.YELLOW + "/ckd arena editor <name> - Open arena editor GUI");
+            sender.sendMessage(ChatColor.YELLOW + "/ckd arena editor - Open arena editor GUI");
             sender.sendMessage(ChatColor.YELLOW + "/ckd arena list - List all arenas");
             sender.sendMessage(ChatColor.YELLOW + "/ckd arena delete <name> - Delete an arena");
+            sender.sendMessage(ChatColor.YELLOW + "/ckd setspawn - Set global spawn point");
             sender.sendMessage(ChatColor.YELLOW + "/ckd reload - Reload config");
         }
     }
@@ -314,7 +318,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         
         plugin.getArenaManager().createArena(arenaName);
         sender.sendMessage(ChatColor.GREEN + "Arena '" + arenaName + "' created successfully!");
-        sender.sendMessage(ChatColor.YELLOW + "Use /ckd arena editor " + arenaName + " to configure it.");
+        sender.sendMessage(ChatColor.YELLOW + "Use /ckd arena editor to configure it.");
         return true;
     }
     
@@ -324,21 +328,23 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /ckd arena editor <name>");
-            return true;
-        }
-        
         Player player = (Player) sender;
-        String arenaName = args[2];
         
-        Arena arena = plugin.getArenaManager().getArena(arenaName);
-        if (arena == null) {
-            sender.sendMessage(ChatColor.RED + "Arena '" + arenaName + "' not found!");
-            return true;
+        // If specific arena name provided, open that arena directly
+        if (args.length >= 3) {
+            String arenaName = args[2];
+            Arena arena = plugin.getArenaManager().getArena(arenaName);
+            if (arena == null) {
+                sender.sendMessage(ChatColor.RED + "Arena '" + arenaName + "' not found!");
+                return true;
+            }
+            
+            new ArenaEditorGUI(plugin, player, arena).open();
+        } else {
+            // Open arena list GUI
+            new ArenaListGUI(plugin, player).open();
         }
         
-        new ArenaEditorGUI(plugin, player, arena).open();
         return true;
     }
     
@@ -385,6 +391,23 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         return true;
     }
     
+    private boolean handleSetSpawn(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "Only players can set spawn.");
+            return true;
+        }
+        
+        if (!sender.hasPermission("customkitduels.admin")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+        
+        Player player = (Player) sender;
+        plugin.getSpawnManager().setSpawn(player.getLocation());
+        sender.sendMessage(ChatColor.GREEN + "Spawn location set to your current position!");
+        return true;
+    }
+    
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission("customkitduels.admin")) {
             sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
@@ -404,7 +427,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             List<String> commands = Arrays.asList("createkit", "editkit", "deletekit", "listkits", "duel", "accept", "editcategory");
             if (sender.hasPermission("customkitduels.admin")) {
                 commands = new ArrayList<>(commands);
-                commands.addAll(Arrays.asList("arena", "reload"));
+                commands.addAll(Arrays.asList("arena", "setspawn", "reload"));
             }
             
             return commands.stream()

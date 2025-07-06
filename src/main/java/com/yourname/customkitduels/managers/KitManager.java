@@ -14,18 +14,28 @@ public class KitManager {
     
     private final CustomKitDuels plugin;
     private final File kitsFolder;
+    private final File kitSettingsFolder;
     private final Map<UUID, List<Kit>> playerKits;
+    private final Map<String, Double> kitHearts; // UUID_kitName -> hearts
+    private final Map<String, Boolean> kitNaturalRegen; // UUID_kitName -> naturalRegen
     
     public KitManager(CustomKitDuels plugin) {
         this.plugin = plugin;
         this.kitsFolder = new File(plugin.getDataFolder(), "kits");
+        this.kitSettingsFolder = new File(plugin.getDataFolder(), "kit-settings");
         this.playerKits = new HashMap<>();
+        this.kitHearts = new HashMap<>();
+        this.kitNaturalRegen = new HashMap<>();
         
         if (!kitsFolder.exists()) {
             kitsFolder.mkdirs();
         }
+        if (!kitSettingsFolder.exists()) {
+            kitSettingsFolder.mkdirs();
+        }
         
         loadAllKits();
+        loadAllKitSettings();
     }
     
     private void loadAllKits() {
@@ -39,6 +49,70 @@ public class KitManager {
             } catch (IllegalArgumentException e) {
                 plugin.getLogger().warning("Invalid kit file: " + file.getName());
             }
+        }
+    }
+    
+    private void loadAllKitSettings() {
+        File[] settingsFiles = kitSettingsFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (settingsFiles == null) return;
+        
+        for (File file : settingsFiles) {
+            try {
+                UUID playerId = UUID.fromString(file.getName().replace(".yml", ""));
+                loadPlayerKitSettings(playerId);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid kit settings file: " + file.getName());
+            }
+        }
+    }
+    
+    private void loadPlayerKitSettings(UUID playerId) {
+        File file = new File(kitSettingsFolder, playerId.toString() + ".yml");
+        if (!file.exists()) return;
+        
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        
+        for (String kitName : config.getKeys(false)) {
+            String key = playerId.toString() + "_" + kitName;
+            kitHearts.put(key, config.getDouble(kitName + ".hearts", 20.0));
+            kitNaturalRegen.put(key, config.getBoolean(kitName + ".naturalRegen", true));
+        }
+    }
+    
+    private void savePlayerKitSettings(UUID playerId) {
+        File file = new File(kitSettingsFolder, playerId.toString() + ".yml");
+        FileConfiguration config = new YamlConfiguration();
+        
+        String playerIdStr = playerId.toString();
+        boolean hasSettings = false;
+        
+        for (Map.Entry<String, Double> entry : kitHearts.entrySet()) {
+            if (entry.getKey().startsWith(playerIdStr + "_")) {
+                String kitName = entry.getKey().substring(playerIdStr.length() + 1);
+                config.set(kitName + ".hearts", entry.getValue());
+                hasSettings = true;
+            }
+        }
+        
+        for (Map.Entry<String, Boolean> entry : kitNaturalRegen.entrySet()) {
+            if (entry.getKey().startsWith(playerIdStr + "_")) {
+                String kitName = entry.getKey().substring(playerIdStr.length() + 1);
+                config.set(kitName + ".naturalRegen", entry.getValue());
+                hasSettings = true;
+            }
+        }
+        
+        if (!hasSettings) {
+            if (file.exists()) {
+                file.delete();
+            }
+            return;
+        }
+        
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save kit settings for player " + playerId + ": " + e.getMessage());
         }
     }
     
@@ -150,6 +224,12 @@ public class KitManager {
         boolean removed = kits.removeIf(kit -> kit.getName().equals(kitName));
         if (removed) {
             savePlayerKits(playerId);
+            
+            // Also remove kit settings
+            String key = playerId.toString() + "_" + kitName;
+            kitHearts.remove(key);
+            kitNaturalRegen.remove(key);
+            savePlayerKitSettings(playerId);
         }
         
         return removed;
@@ -171,5 +251,28 @@ public class KitManager {
     
     public boolean hasKit(UUID playerId, String kitName) {
         return getKit(playerId, kitName) != null;
+    }
+    
+    // Kit Settings Methods
+    public double getKitHearts(UUID playerId, String kitName) {
+        String key = playerId.toString() + "_" + kitName;
+        return kitHearts.getOrDefault(key, 20.0);
+    }
+    
+    public void setKitHearts(UUID playerId, String kitName, double hearts) {
+        String key = playerId.toString() + "_" + kitName;
+        kitHearts.put(key, hearts);
+        savePlayerKitSettings(playerId);
+    }
+    
+    public boolean getKitNaturalRegen(UUID playerId, String kitName) {
+        String key = playerId.toString() + "_" + kitName;
+        return kitNaturalRegen.getOrDefault(key, true);
+    }
+    
+    public void setKitNaturalRegen(UUID playerId, String kitName, boolean naturalRegen) {
+        String key = playerId.toString() + "_" + kitName;
+        kitNaturalRegen.put(key, naturalRegen);
+        savePlayerKitSettings(playerId);
     }
 }

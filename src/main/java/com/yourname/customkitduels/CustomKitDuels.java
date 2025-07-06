@@ -1,10 +1,7 @@
 package com.yourname.customkitduels;
 
 import com.yourname.customkitduels.commands.CommandHandler;
-import com.yourname.customkitduels.managers.ArenaManager;
-import com.yourname.customkitduels.managers.CategoryManager;
-import com.yourname.customkitduels.managers.DuelManager;
-import com.yourname.customkitduels.managers.KitManager;
+import com.yourname.customkitduels.managers.*;
 import com.yourname.customkitduels.listeners.PlayerListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,6 +12,8 @@ public class CustomKitDuels extends JavaPlugin {
     private ArenaManager arenaManager;
     private DuelManager duelManager;
     private CategoryManager categoryManager;
+    private ScoreboardManager scoreboardManager;
+    private SpawnManager spawnManager;
     
     @Override
     public void onEnable() {
@@ -28,6 +27,8 @@ public class CustomKitDuels extends JavaPlugin {
         kitManager = new KitManager(this);
         arenaManager = new ArenaManager(this);
         duelManager = new DuelManager(this);
+        scoreboardManager = new ScoreboardManager(this);
+        spawnManager = new SpawnManager(this);
         
         // Register commands
         CommandHandler commandHandler = new CommandHandler(this);
@@ -70,10 +71,19 @@ public class CustomKitDuels extends JavaPlugin {
         return categoryManager;
     }
     
+    public ScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
+    }
+    
+    public SpawnManager getSpawnManager() {
+        return spawnManager;
+    }
+    
     public void reloadPluginConfig() {
         reloadConfig();
         arenaManager.loadArenas();
         categoryManager.reloadCategories();
+        scoreboardManager.reloadConfig();
         getLogger().info("Configuration reloaded!");
     }
 }

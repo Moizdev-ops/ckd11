@@ -40,19 +40,12 @@ public class CustomKitDuels extends JavaPlugin {
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         
-        getLogger().info("CustomKitDuels has been enabled with enhanced scoreboard and health display support!");
-        getLogger().info("Libraries used:");
-        getLogger().info("- Adventure API: Modern text components and hex color support");
-        getLogger().info("- FastBoard: High-performance scoreboards");
-        getLogger().info("- MiniMessage: Advanced text formatting");
-        
-        // Check optional dependencies
-        if (getServer().getPluginManager().isPluginEnabled("HolographicDisplays")) {
-            getLogger().info("- HolographicDisplays: Enhanced floating health displays (detected)");
-        }
-        if (getServer().getPluginManager().isPluginEnabled("ProtocolLib")) {
-            getLogger().info("- ProtocolLib: Packet-based health displays (detected)");
-        }
+        getLogger().info("CustomKitDuels has been enabled!");
+        getLogger().info("Features:");
+        getLogger().info("- Native Bukkit scoreboards with hex color support");
+        getLogger().info("- Simple health display using custom names");
+        getLogger().info("- No external dependencies required");
+        getLogger().info("- Full compatibility with all server versions");
     }
     
     @Override

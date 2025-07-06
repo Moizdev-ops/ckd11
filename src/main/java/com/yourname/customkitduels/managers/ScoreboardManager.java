@@ -3,26 +3,28 @@ package com.yourname.customkitduels.managers;
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.RoundsDuel;
 import com.yourname.customkitduels.utils.ColorUtils;
-import fr.mrmicky.fastboard.FastBoard;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
 /**
- * Enhanced ScoreboardManager using FastBoard for better performance and hex color support
- * Uses Adventure API for modern text formatting
+ * Simple but effective ScoreboardManager using native Bukkit scoreboards
+ * Supports hex colors and real-time updates without external dependencies
  */
 public class ScoreboardManager {
     
     private final CustomKitDuels plugin;
     private final File scoreboardFile;
     private FileConfiguration scoreboardConfig;
-    private final Map<UUID, FastBoard> playerBoards;
+    private final Map<UUID, Scoreboard> playerBoards;
     private final Map<UUID, BukkitRunnable> updateTasks;
     
     public ScoreboardManager(CustomKitDuels plugin) {
@@ -32,7 +34,7 @@ public class ScoreboardManager {
         this.updateTasks = new HashMap<>();
         
         loadScoreboardConfig();
-        plugin.getLogger().info("ScoreboardManager initialized with FastBoard and Adventure API support");
+        plugin.getLogger().info("ScoreboardManager initialized with native Bukkit scoreboards and hex color support");
     }
     
     private void loadScoreboardConfig() {
@@ -46,24 +48,24 @@ public class ScoreboardManager {
     private void createDefaultScoreboardConfig() {
         scoreboardConfig = new YamlConfiguration();
         
-        // Using MiniMessage format for better hex support
-        scoreboardConfig.set("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
+        // Using simple format with hex support
+        scoreboardConfig.set("title", "&#00FF98&lPakMC");
         scoreboardConfig.set("lines", Arrays.asList(
             " ",
-            " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)",
-            " <#C3F6E2>│ Duration: <#00FF98><duration>",
-            " <#C3F6E2>│ Round: <#00FF98><current_round>",
+            " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)",
+            " &#C3F6E2| Duration: &#00FF98<duration>",
+            " &#C3F6E2| Round: &#00FF98<current_round>",
             " ",
-            " <#00FF98><bold>SCORE</bold>",
-            " <#C3F6E2>│ <green><player_score></green> - <red><opponent_score></red>",
-            " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>",
+            " &#00FF98&lSCORE",
+            " &#C3F6E2| &a<player_score> &7- &c<opponent_score>",
+            " &#C3F6E2| &7<player_name> vs <opponent_name>",
             " ",
-            "    <#C3F6E2>pakmc.xyz"
+            "    &#C3F6E2pakmc.xyz"
         ));
         
         try {
             scoreboardConfig.save(scoreboardFile);
-            plugin.getLogger().info("Created default scoreboard.yml with MiniMessage format");
+            plugin.getLogger().info("Created default scoreboard.yml with hex color support");
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to create scoreboard.yml: " + e.getMessage());
         }
@@ -73,12 +75,24 @@ public class ScoreboardManager {
         // Remove existing board if present
         removeDuelScoreboard(player);
         
-        // Create new FastBoard
-        String title = scoreboardConfig.getString("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
-        FastBoard board = new FastBoard(player);
-        board.updateTitle(ColorUtils.translateColors(title));
+        // Create new scoreboard
+        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
+        if (bukkitManager == null) return;
+        
+        Scoreboard board = bukkitManager.getNewScoreboard();
+        String title = scoreboardConfig.getString("title", "&#00FF98&lPakMC");
+        
+        // Translate colors and truncate title if needed
+        String translatedTitle = ColorUtils.translateColors(title);
+        if (translatedTitle.length() > 32) {
+            translatedTitle = ColorUtils.truncateWithColors(translatedTitle, 32);
+        }
+        
+        Objective objective = board.registerNewObjective("duel", "dummy", translatedTitle);
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         
         playerBoards.put(player.getUniqueId(), board);
+        player.setScoreboard(board);
         
         // Start update task for real-time updates
         BukkitRunnable updateTask = new BukkitRunnable() {
@@ -100,31 +114,56 @@ public class ScoreboardManager {
         // Initial update
         updateDuelScoreboard(player, roundsDuel);
         
-        plugin.getLogger().info("Showing duel scoreboard for " + player.getName() + " with FastBoard");
+        plugin.getLogger().info("Showing duel scoreboard for " + player.getName());
     }
     
     public void updateDuelScoreboard(Player player, RoundsDuel roundsDuel) {
-        FastBoard board = playerBoards.get(player.getUniqueId());
+        Scoreboard board = playerBoards.get(player.getUniqueId());
         if (board == null) return;
         
-        List<String> lines = scoreboardConfig.getStringList("lines");
-        List<String> processedLines = new ArrayList<>();
+        Objective objective = board.getObjective("duel");
+        if (objective == null) return;
         
+        // Clear existing scores
+        for (String entry : board.getEntries()) {
+            board.resetScores(entry);
+        }
+        
+        List<String> lines = scoreboardConfig.getStringList("lines");
         Player opponent = roundsDuel.getOpponent(player);
         
-        for (String line : lines) {
+        // Process lines in reverse order (Bukkit scoreboards are weird)
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
             String processedLine = replacePlaceholders(line, player, opponent, roundsDuel);
             processedLine = ColorUtils.translateColors(processedLine);
             
-            // FastBoard handles line length automatically, but we'll limit to 40 chars for safety
-            if (ColorUtils.stripColors(processedLine).length() > 40) {
+            // Ensure line is unique and not too long
+            if (processedLine.length() > 40) {
                 processedLine = ColorUtils.truncateWithColors(processedLine, 40);
             }
             
-            processedLines.add(processedLine);
+            // Make line unique by adding invisible characters if needed
+            String uniqueLine = makeLineUnique(processedLine, board);
+            
+            Score score = objective.getScore(uniqueLine);
+            score.setScore(lines.size() - i);
+        }
+    }
+    
+    /**
+     * Make scoreboard line unique by adding invisible characters
+     */
+    private String makeLineUnique(String line, Scoreboard board) {
+        String uniqueLine = line;
+        int attempts = 0;
+        
+        while (board.getEntries().contains(uniqueLine) && attempts < 10) {
+            uniqueLine = line + ChatColor.RESET.toString().repeat(attempts + 1);
+            attempts++;
         }
         
-        board.updateLines(processedLines);
+        return uniqueLine;
     }
     
     public void removeDuelScoreboard(Player player) {
@@ -134,12 +173,16 @@ public class ScoreboardManager {
             updateTask.cancel();
         }
         
-        // Remove FastBoard
-        FastBoard board = playerBoards.remove(player.getUniqueId());
-        if (board != null) {
-            board.delete();
-            plugin.getLogger().info("Removed duel scoreboard for " + player.getName());
+        // Remove scoreboard
+        playerBoards.remove(player.getUniqueId());
+        
+        // Reset to main scoreboard
+        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
+        if (bukkitManager != null) {
+            player.setScoreboard(bukkitManager.getMainScoreboard());
         }
+        
+        plugin.getLogger().info("Removed duel scoreboard for " + player.getName());
     }
     
     private String replacePlaceholders(String line, Player player, Player opponent, RoundsDuel roundsDuel) {
@@ -188,12 +231,19 @@ public class ScoreboardManager {
         }
         updateTasks.clear();
         
-        // Remove all boards
-        for (FastBoard board : playerBoards.values()) {
-            board.delete();
+        // Reset all players to main scoreboard
+        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
+        if (bukkitManager != null) {
+            Scoreboard mainBoard = bukkitManager.getMainScoreboard();
+            for (UUID playerId : playerBoards.keySet()) {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player != null && player.isOnline()) {
+                    player.setScoreboard(mainBoard);
+                }
+            }
         }
-        playerBoards.clear();
         
+        playerBoards.clear();
         plugin.getLogger().info("ScoreboardManager cleaned up");
     }
 }

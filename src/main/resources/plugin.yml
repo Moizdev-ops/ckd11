@@ -4,8 +4,6 @@ main: com.yourname.customkitduels.CustomKitDuels
 api-version: 1.21
 author: YourName
 description: Custom kit dueling plugin for Minecraft 1.21.4
-depend: []
-softdepend: [HolographicDisplays, ProtocolLib]
 
 commands:
   ckd:

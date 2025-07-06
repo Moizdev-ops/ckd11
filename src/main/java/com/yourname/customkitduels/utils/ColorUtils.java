@@ -1,55 +1,51 @@
 package com.yourname.customkitduels.utils;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Utility class for handling colors and text formatting
- * Uses Adventure API for modern hex color support
+ * Simple utility class for handling colors and text formatting
+ * Uses native Bukkit ChatColor with hex support for 1.16+
  */
 public class ColorUtils {
     
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand();
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    private static final Pattern MINI_HEX_PATTERN = Pattern.compile("<#([A-Fa-f0-9]{6})>");
     
     /**
-     * Translates color codes including hex colors to legacy format for Bukkit compatibility
-     * Supports both &#RRGGBB and MiniMessage format
+     * Translates color codes including hex colors to Bukkit format
+     * Supports &#RRGGBB, <#RRGGBB>, and legacy &a format
      */
     public static String translateColors(String text) {
         if (text == null || text.isEmpty()) {
             return text;
         }
         
-        // First convert &#RRGGBB to MiniMessage format
-        text = convertHexToMiniMessage(text);
+        // Convert &#RRGGBB to Bukkit hex format
+        text = convertHexColors(text);
         
-        // Parse with MiniMessage and convert to legacy
-        try {
-            Component component = MINI_MESSAGE.deserialize(text);
-            return LEGACY_SERIALIZER.serialize(component);
-        } catch (Exception e) {
-            // Fallback to basic color code translation
-            return ChatColor.translateAlternateColorCodes('&', text);
-        }
+        // Convert <#RRGGBB> to Bukkit hex format
+        text = convertMiniHexColors(text);
+        
+        // Handle legacy color codes
+        text = ChatColor.translateAlternateColorCodes('&', text);
+        
+        return text;
     }
     
     /**
-     * Converts &#RRGGBB format to MiniMessage <#RRGGBB> format
+     * Converts &#RRGGBB format to Bukkit hex format
      */
-    private static String convertHexToMiniMessage(String text) {
+    private static String convertHexColors(String text) {
         Matcher matcher = HEX_PATTERN.matcher(text);
         StringBuffer buffer = new StringBuffer();
         
         while (matcher.find()) {
             String hex = matcher.group(1);
-            matcher.appendReplacement(buffer, "<#" + hex + ">");
+            String replacement = net.md_5.bungee.api.ChatColor.of("#" + hex).toString();
+            matcher.appendReplacement(buffer, replacement);
         }
         matcher.appendTail(buffer);
         
@@ -57,22 +53,20 @@ public class ColorUtils {
     }
     
     /**
-     * Creates an Adventure Component from text with color support
+     * Converts <#RRGGBB> format to Bukkit hex format
      */
-    public static Component createComponent(String text) {
-        if (text == null || text.isEmpty()) {
-            return Component.empty();
-        }
+    private static String convertMiniHexColors(String text) {
+        Matcher matcher = MINI_HEX_PATTERN.matcher(text);
+        StringBuffer buffer = new StringBuffer();
         
-        // Convert &#RRGGBB to MiniMessage format
-        text = convertHexToMiniMessage(text);
-        
-        try {
-            return MINI_MESSAGE.deserialize(text);
-        } catch (Exception e) {
-            // Fallback to legacy parsing
-            return LEGACY_SERIALIZER.deserialize(ChatColor.translateAlternateColorCodes('&', text));
+        while (matcher.find()) {
+            String hex = matcher.group(1);
+            String replacement = net.md_5.bungee.api.ChatColor.of("#" + hex).toString();
+            matcher.appendReplacement(buffer, replacement);
         }
+        matcher.appendTail(buffer);
+        
+        return buffer.toString();
     }
     
     /**
@@ -83,11 +77,12 @@ public class ColorUtils {
             return text;
         }
         
-        // Remove hex colors
+        // Remove hex colors first
         text = HEX_PATTERN.matcher(text).replaceAll("");
+        text = MINI_HEX_PATTERN.matcher(text).replaceAll("");
         
         // Remove legacy colors
-        return ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', text));
+        return ChatColor.stripColor(text);
     }
     
     /**
@@ -103,24 +98,25 @@ public class ColorUtils {
             return text;
         }
         
-        // Find the position in the original text that corresponds to maxLength in stripped text
-        int originalPos = 0;
-        int strippedPos = 0;
-        
-        while (originalPos < text.length() && strippedPos < maxLength) {
-            if (text.charAt(originalPos) == '&' && originalPos + 1 < text.length()) {
-                // Skip color code
-                originalPos += 2;
-            } else if (text.startsWith("&#", originalPos) && originalPos + 8 < text.length()) {
-                // Skip hex color code
-                originalPos += 8;
-            } else {
-                // Regular character
-                originalPos++;
-                strippedPos++;
-            }
+        // Simple truncation - find position that gives us maxLength visible characters
+        String result = text;
+        while (stripColors(result).length() > maxLength && result.length() > 0) {
+            result = result.substring(0, result.length() - 1);
         }
         
-        return text.substring(0, originalPos);
+        return result;
+    }
+    
+    /**
+     * Get health color based on percentage
+     */
+    public static ChatColor getHealthColor(double healthPercentage) {
+        if (healthPercentage > 0.6) {
+            return ChatColor.GREEN;
+        } else if (healthPercentage > 0.3) {
+            return ChatColor.YELLOW;
+        } else {
+            return ChatColor.RED;
+        }
     }
 }

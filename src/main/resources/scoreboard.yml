@@ -1,20 +1,19 @@
-# Enhanced Scoreboard Configuration with MiniMessage Support
-# Supports hex colors, gradients, and advanced formatting
-# Format: Use MiniMessage syntax for modern formatting
+# Simple Scoreboard Configuration with Hex Color Support
+# Supports &#RRGGBB, <#RRGGBB>, and legacy &a format
 
-title: "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>"
+title: "&#00FF98&lPakMC"
 
 lines:
   - " "
-  - " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)"
-  - " <#C3F6E2>│ Duration: <#00FF98><duration>"
-  - " <#C3F6E2>│ Round: <#00FF98><current_round>"
+  - " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)"
+  - " &#C3F6E2| Duration: &#00FF98<duration>"
+  - " &#C3F6E2| Round: &#00FF98<current_round>"
   - " "
-  - " <#00FF98><bold>SCORE</bold>"
-  - " <#C3F6E2>│ <green><player_score></green> - <red><opponent_score></red>"
-  - " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>"
+  - " &#00FF98&lSCORE"
+  - " &#C3F6E2| &a<player_score> &7- &c<opponent_score>"
+  - " &#C3F6E2| &7<player_name> vs <opponent_name>"
   - " "
-  - "    <#C3F6E2>pakmc.xyz"
+  - "    &#C3F6E2pakmc.xyz"
 
 # Available placeholders:
 # <rounds> - Target rounds to win
@@ -27,7 +26,9 @@ lines:
 
 # Color formats supported:
 # Legacy: &a, &b, &c, etc.
-# Hex: <#RRGGBB> or &#RRGGBB
-# Named: <red>, <green>, <blue>, etc.
-# Gradients: <gradient:#start:#end>text</gradient>
-# Rainbow: <rainbow>text</rainbow>
+# Hex: &#RRGGBB or <#RRGGBB>
+# Examples:
+# &#FF0000 = Red
+# &#00FF00 = Green
+# &#0000FF = Blue
+# &#FFD700 = Gold

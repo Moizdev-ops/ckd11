@@ -32,6 +32,8 @@ public class KitEditorGUI implements Listener {
     private ItemStack offhandItem;
     private static final Map<UUID, KitEditorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
+    private boolean isBulkMode = false;
+    private ItemStack bulkItem = null;
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
         this.plugin = plugin;
@@ -94,7 +96,8 @@ public class KitEditorGUI implements Listener {
             meta.setDisplayName(ChatColor.AQUA + "Slot #" + (slot + 1));
             meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Left-click to add an item",
-                ChatColor.GRAY + "Right-click to modify (if item present)"
+                ChatColor.GRAY + "Right-click to modify (if item present)",
+                ChatColor.YELLOW + "Shift-click to enter bulk mode"
             ));
             glassPane.setItemMeta(meta);
             gui.setItem(slot, glassPane);
@@ -158,6 +161,22 @@ public class KitEditorGUI implements Listener {
         clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to clear all slots"));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
+        
+        // Bulk mode indicator
+        if (isBulkMode) {
+            ItemStack bulkIndicator = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+            ItemMeta bulkMeta = bulkIndicator.getItemMeta();
+            bulkMeta.setDisplayName(ChatColor.GREEN + "Bulk Mode: ON");
+            bulkMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Item: " + (bulkItem != null ? bulkItem.getType().name() : "None"),
+                ChatColor.GRAY + "Click slots to place this item",
+                ChatColor.RED + "Right-click to exit bulk mode"
+            ));
+            bulkIndicator.setItemMeta(bulkMeta);
+            gui.setItem(47, bulkIndicator);
+        } else {
+            gui.setItem(47, null);
+        }
     }
     
     public void open() {
@@ -189,7 +208,15 @@ public class KitEditorGUI implements Listener {
         int slot = event.getSlot();
         ClickType clickType = event.getClick();
         
-        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType + ", Active: " + isActive);
+        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType + ", Active: " + isActive + ", BulkMode: " + isBulkMode);
+        
+        // Handle bulk mode indicator
+        if (slot == 47 && isBulkMode) {
+            if (clickType == ClickType.RIGHT) {
+                exitBulkMode();
+                return;
+            }
+        }
         
         // Handle control buttons
         if (slot == 45) { // Save button
@@ -212,6 +239,31 @@ public class KitEditorGUI implements Listener {
         
         // Handle slot selection (0-40: main inventory, armor, and offhand)
         if (slot <= 40) {
+            // Handle bulk mode
+            if (isBulkMode && bulkItem != null) {
+                if (slot < 36) { // Only main inventory slots for bulk mode
+                    setSlotItem(slot, bulkItem.clone());
+                    player.sendMessage(ChatColor.GREEN + "Added " + bulkItem.getType().name() + " to slot " + (slot + 1) + "!");
+                    return;
+                } else {
+                    player.sendMessage(ChatColor.RED + "Bulk mode only works for main inventory slots!");
+                    return;
+                }
+            }
+            
+            // Handle shift-click for bulk mode activation
+            if (clickType == ClickType.SHIFT_LEFT || clickType == ClickType.SHIFT_RIGHT) {
+                ItemStack currentItem = getCurrentItemInSlot(slot);
+                if (currentItem != null && !isPlaceholderItem(currentItem)) {
+                    enterBulkMode(currentItem);
+                    return;
+                } else if (slot < 36) { // Only for main inventory slots
+                    // Open category selector to choose bulk item
+                    openCategorySelectorForBulk(slot);
+                    return;
+                }
+            }
+            
             if (clickType == ClickType.RIGHT) {
                 // Right-click: open item modification menu if item exists
                 ItemStack currentItem = getCurrentItemInSlot(slot);
@@ -236,13 +288,34 @@ public class KitEditorGUI implements Listener {
         }
     }
     
+    private void enterBulkMode(ItemStack item) {
+        isBulkMode = true;
+        bulkItem = item.clone();
+        setupControlButtons(); // Refresh to show bulk indicator
+        player.sendMessage(ChatColor.GREEN + "Bulk mode activated! Click slots to place " + item.getType().name());
+        player.sendMessage(ChatColor.YELLOW + "Right-click the green indicator to exit bulk mode");
+    }
+    
+    private void exitBulkMode() {
+        isBulkMode = false;
+        bulkItem = null;
+        setupControlButtons(); // Refresh to hide bulk indicator
+        player.sendMessage(ChatColor.YELLOW + "Bulk mode deactivated");
+    }
+    
+    private void openCategorySelectorForBulk(int slot) {
+        plugin.getLogger().info("[DEBUG] Opening category selector for bulk mode");
+        
+        // Don't deactivate the GUI - we want to return to the same state
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new BulkCategorySelectorGUI(plugin, player, this, slot).open();
+        }, 1L);
+    }
+    
     private void openCategorySelector(int slot) {
         plugin.getLogger().info("[DEBUG] Opening category selector for slot " + slot);
         
-        // Deactivate this GUI immediately to prevent further clicks
-        isActive = false;
-        
-        // Open category selector with minimal delay
+        // Don't close inventory - use direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new CategorySelectorGUI(plugin, player, this, slot).open();
         }, 1L);
@@ -251,10 +324,7 @@ public class KitEditorGUI implements Listener {
     private void openArmorSelector(int slot) {
         plugin.getLogger().info("[DEBUG] Opening armor selector for slot " + slot);
         
-        // Deactivate this GUI immediately to prevent further clicks
-        isActive = false;
-        
-        // Open armor selector with minimal delay
+        // Don't close inventory - use direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ArmorSelectorGUI(plugin, player, this, slot).open();
         }, 1L);
@@ -263,10 +333,7 @@ public class KitEditorGUI implements Listener {
     private void openItemModificationMenu(int slot, ItemStack item) {
         plugin.getLogger().info("[DEBUG] Opening item modification menu for slot " + slot);
         
-        // Deactivate this GUI immediately to prevent further clicks
-        isActive = false;
-        
-        // Open modification menu with minimal delay
+        // Don't close inventory - use direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemModificationGUI(plugin, player, this, slot, item).open();
         }, 1L);
@@ -314,6 +381,8 @@ public class KitEditorGUI implements Listener {
     private void forceCleanup() {
         plugin.getLogger().info("[DEBUG] Force cleanup for " + player.getName());
         isActive = false;
+        isBulkMode = false;
+        bulkItem = null;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
@@ -352,6 +421,7 @@ public class KitEditorGUI implements Listener {
         }
         offhandItem = null;
         updateOffhandSlot();
+        exitBulkMode(); // Exit bulk mode when clearing
         player.sendMessage(ChatColor.YELLOW + "All slots cleared!");
     }
     
@@ -379,13 +449,12 @@ public class KitEditorGUI implements Listener {
         // Refresh the GUI content
         setupGUI();
         
-        // Close current inventory and reopen with delay to prevent cursor issues
-        player.closeInventory();
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (isActive) {
-                player.openInventory(gui);
-            }
-        }, 1L);
+        // Don't close and reopen - just update the existing inventory
+        // This prevents cursor jumping
+    }
+    
+    public void setBulkItem(ItemStack item) {
+        enterBulkMode(item);
     }
     
     public boolean isActive() {

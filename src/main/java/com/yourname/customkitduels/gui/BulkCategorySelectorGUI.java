@@ -19,24 +19,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class CategorySelectorGUI implements Listener {
+public class BulkCategorySelectorGUI implements Listener {
     
     private final CustomKitDuels plugin;
     private final Player player;
     private final KitEditorGUI parentGUI;
     private final int targetSlot;
     private final Inventory gui;
-    private static final Map<UUID, CategorySelectorGUI> activeGuis = new HashMap<>();
+    private static final Map<UUID, BulkCategorySelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
     
-    public CategorySelectorGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot) {
+    public BulkCategorySelectorGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot) {
         this.plugin = plugin;
         this.player = player;
         this.parentGUI = parentGUI;
         this.targetSlot = targetSlot;
-        this.gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Category");
+        this.gui = Bukkit.createInventory(null, 27, ChatColor.GOLD + "Select Bulk Item Category");
         
-        plugin.getLogger().info("[DEBUG] Creating CategorySelectorGUI for player " + player.getName() + " slot " + targetSlot);
+        plugin.getLogger().info("[DEBUG] Creating BulkCategorySelectorGUI for player " + player.getName());
         
         setupGUI();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -107,14 +107,6 @@ public class CategorySelectorGUI implements Listener {
         misc.setItemMeta(miscMeta);
         gui.setItem(19, misc);
         
-        // Clear slot option
-        ItemStack clear = new ItemStack(Material.BARRIER);
-        ItemMeta clearMeta = clear.getItemMeta();
-        clearMeta.setDisplayName(ChatColor.RED + "Clear Slot");
-        clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Remove item from this slot"));
-        clear.setItemMeta(clearMeta);
-        gui.setItem(21, clear);
-        
         // Back button
         ItemStack back = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta backMeta = back.getItemMeta();
@@ -125,19 +117,16 @@ public class CategorySelectorGUI implements Listener {
     }
     
     public void open() {
-        plugin.getLogger().info("[DEBUG] Opening CategorySelectorGUI for " + player.getName());
+        plugin.getLogger().info("[DEBUG] Opening BulkCategorySelectorGUI for " + player.getName());
         
-        // Clean up any existing category GUI for this player
-        CategorySelectorGUI existing = activeGuis.get(player.getUniqueId());
+        BulkCategorySelectorGUI existing = activeGuis.get(player.getUniqueId());
         if (existing != null && existing != this) {
-            plugin.getLogger().info("[DEBUG] Cleaning up existing CategorySelectorGUI for " + player.getName());
+            plugin.getLogger().info("[DEBUG] Cleaning up existing BulkCategorySelectorGUI for " + player.getName());
             existing.forceCleanup();
         }
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
-        
-        // Direct inventory switch without closing - prevents cursor jumping
         player.openInventory(gui);
     }
     
@@ -146,45 +135,39 @@ public class CategorySelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        // CRITICAL: Only handle events for our specific player and GUI
-        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
-        if (!event.getInventory().equals(gui)) return;
-        if (!isActive) return;
+        if (!clicker.getUniqueId().equals(player.getUniqueId()) || !event.getInventory().equals(gui) || !isActive) {
+            return;
+        }
         
         event.setCancelled(true);
         int slot = event.getSlot();
         
-        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
+        plugin.getLogger().info("[DEBUG] BulkCategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
         
         switch (slot) {
             case 10: // Weapons
-                openItemSelector("WEAPONS");
+                openBulkItemSelector("WEAPONS");
                 break;
             case 11: // Armor
-                openItemSelector("ARMOR");
+                openBulkItemSelector("ARMOR");
                 break;
             case 12: // Blocks
-                openItemSelector("BLOCKS");
+                openBulkItemSelector("BLOCKS");
                 break;
             case 13: // Food
-                openItemSelector("FOOD");
+                openBulkItemSelector("FOOD");
                 break;
             case 14: // Potions
-                openItemSelector("POTIONS");
+                openBulkItemSelector("POTIONS");
                 break;
             case 15: // Tools
-                openItemSelector("TOOLS");
+                openBulkItemSelector("TOOLS");
                 break;
             case 16: // Utility
-                openItemSelector("UTILITY");
+                openBulkItemSelector("UTILITY");
                 break;
             case 19: // Misc
-                openItemSelector("MISC");
-                break;
-            case 21: // Clear slot
-                plugin.getLogger().info("[DEBUG] Clear slot clicked for slot " + targetSlot);
-                parentGUI.clearSlot(targetSlot);
-                returnToParent();
+                openBulkItemSelector("MISC");
                 break;
             case 22: // Back
                 plugin.getLogger().info("[DEBUG] Back button clicked");
@@ -193,34 +176,30 @@ public class CategorySelectorGUI implements Listener {
         }
     }
     
-    private void openItemSelector(String category) {
-        plugin.getLogger().info("[DEBUG] Opening ItemSelector for category " + category + " for player " + player.getName());
+    private void openBulkItemSelector(String category) {
+        plugin.getLogger().info("[DEBUG] Opening BulkItemSelector for category " + category + " for player " + player.getName());
         
-        // Deactivate this GUI immediately
         isActive = false;
         forceCleanup();
         
-        // Open item selector with direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
+            new BulkItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
         }, 1L);
     }
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
         
-        // Deactivate this GUI immediately
         isActive = false;
         forceCleanup();
         
-        // Return to parent with direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
         }, 1L);
     }
     
     private void forceCleanup() {
-        plugin.getLogger().info("[DEBUG] Force cleanup CategorySelectorGUI for " + player.getName());
+        plugin.getLogger().info("[DEBUG] Force cleanup BulkCategorySelectorGUI for " + player.getName());
         isActive = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
@@ -234,13 +213,12 @@ public class CategorySelectorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] CategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] BulkCategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
             
-            // Only cleanup if still active (not already handled by navigation)
             if (isActive) {
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     if (isActive && activeGuis.containsKey(player.getUniqueId())) {
-                        plugin.getLogger().info("[DEBUG] Final cleanup CategorySelectorGUI for " + player.getName());
+                        plugin.getLogger().info("[DEBUG] Final cleanup BulkCategorySelectorGUI for " + player.getName());
                         forceCleanup();
                         parentGUI.refreshAndReopen();
                     }

@@ -115,6 +115,8 @@ public class ItemSelectorGUI implements Listener {
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
         isNavigating = false;
+        
+        // Direct inventory switch without closing - prevents cursor jumping
         player.openInventory(gui);
     }
     
@@ -123,9 +125,10 @@ public class ItemSelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive || isNavigating) {
-            return;
-        }
+        // CRITICAL: Only handle events for our specific player and GUI
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (!event.getInventory().equals(gui)) return;
+        if (!isActive || isNavigating) return;
         
         event.setCancelled(true);
         int slot = event.getSlot();
@@ -168,8 +171,13 @@ public class ItemSelectorGUI implements Listener {
     
     private void returnToCategory() {
         plugin.getLogger().info("[DEBUG] Returning to category selector for player " + player.getName());
+        
+        // Set navigation state and deactivate this GUI
         isNavigating = true;
+        isActive = false;
         forceCleanup();
+        
+        // Return to category with direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new CategorySelectorGUI(plugin, player, parentGUI, targetSlot).open();
         }, 1L);
@@ -177,8 +185,13 @@ public class ItemSelectorGUI implements Listener {
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        
+        // Set navigation state and deactivate this GUI
         isNavigating = true;
+        isActive = false;
         forceCleanup();
+        
+        // Return to parent with direct transition
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
         }, 1L);
@@ -187,10 +200,11 @@ public class ItemSelectorGUI implements Listener {
     private void forceCleanup() {
         plugin.getLogger().info("[DEBUG] Force cleanup ItemSelectorGUI for " + player.getName());
         isActive = false;
+        isNavigating = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
-        player.closeInventory();
+        // REMOVED: player.closeInventory(); - This was causing cursor reset
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
@@ -198,11 +212,11 @@ public class ItemSelectorGUI implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
-        if (closer.equals(player) && event.getInventory().equals(gui)) {
+        if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
             plugin.getLogger().info("[DEBUG] ItemSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
             // Only cleanup if not navigating
-            if (!isNavigating) {
+            if (isActive && !isNavigating) {
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     if (isActive && !isNavigating && activeGuis.containsKey(player.getUniqueId())) {
                         plugin.getLogger().info("[DEBUG] Final cleanup ItemSelectorGUI for " + player.getName());

@@ -4,7 +4,6 @@ import com.yourname.customkitduels.CustomKitDuels;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,9 +14,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionData;
-import org.bukkit.potion.PotionType;
 
 import java.util.*;
 
@@ -158,43 +154,47 @@ public class ItemModificationGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
+        if (!clicker.equals(player) || !isActive) {
             return;
         }
         
-        event.setCancelled(true);
-        int slot = event.getSlot();
-        
-        plugin.getLogger().info("[DEBUG] ItemModificationGUI click event - Player: " + player.getName() + ", Slot: " + slot);
-        
-        switch (slot) {
-            case 10: // Stack size
-                if (targetItem.getMaxStackSize() > 1) {
-                    requestStackSize();
-                }
-                break;
-            case 12: // Enchantments
-                if (canBeEnchanted(targetItem.getType())) {
-                    openEnchantmentMenu();
-                }
-                break;
-            case 14: // Potion effects
-                if (isPotionItem(targetItem.getType())) {
-                    openPotionMenu();
-                }
-                break;
-            case 16: // Remove item
-                removeItem();
-                break;
-            case 22: // Back
-                returnToParent();
-                break;
+        // Only handle clicks in our GUI
+        if (event.getInventory().equals(gui)) {
+            event.setCancelled(true);
+            int slot = event.getSlot();
+            
+            plugin.getLogger().info("[DEBUG] ItemModificationGUI click event - Player: " + player.getName() + ", Slot: " + slot);
+            
+            switch (slot) {
+                case 10: // Stack size
+                    if (targetItem.getMaxStackSize() > 1) {
+                        requestStackSize();
+                    }
+                    break;
+                case 12: // Enchantments
+                    if (canBeEnchanted(targetItem.getType())) {
+                        openEnchantmentMenu();
+                    }
+                    break;
+                case 14: // Potion effects
+                    if (isPotionItem(targetItem.getType())) {
+                        openPotionMenu();
+                    }
+                    break;
+                case 16: // Remove item
+                    removeItem();
+                    break;
+                case 22: // Back
+                    returnToParent();
+                    break;
+            }
         }
     }
     
     private void requestStackSize() {
         plugin.getLogger().info("[DEBUG] Requesting stack size from " + player.getName());
         waitingForStackSize.add(player.getUniqueId());
+        isActive = false; // Temporarily deactivate
         player.closeInventory();
         player.sendMessage(ChatColor.YELLOW + "Enter the new stack size (1-" + targetItem.getMaxStackSize() + ") in chat:");
     }
@@ -236,9 +236,8 @@ public class ItemModificationGUI implements Listener {
         
         // Reopen the modification GUI if there was an error
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if (isActive) {
-                player.openInventory(gui);
-            }
+            isActive = true;
+            player.openInventory(gui);
         });
     }
     

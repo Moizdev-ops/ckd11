@@ -34,7 +34,7 @@ public class CategoryEditorGUI implements Listener {
         this.plugin = plugin;
         this.player = player;
         this.categoryName = categoryName.toUpperCase();
-        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Editing Category: " + this.categoryName);
+        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Editing: " + this.categoryName);
         this.categoryItems = new ArrayList<>();
         
         plugin.getLogger().info("[DEBUG] Creating CategoryEditorGUI for player " + player.getName() + " category " + this.categoryName);
@@ -47,11 +47,17 @@ public class CategoryEditorGUI implements Listener {
     private void loadCategoryItems() {
         File categoriesFile = new File(plugin.getDataFolder(), "categories.yml");
         if (!categoriesFile.exists()) {
+            loadDefaultItems();
             return;
         }
         
         FileConfiguration config = YamlConfiguration.loadConfiguration(categoriesFile);
         List<String> materialNames = config.getStringList(categoryName);
+        
+        if (materialNames.isEmpty()) {
+            loadDefaultItems();
+            return;
+        }
         
         for (String materialName : materialNames) {
             try {
@@ -63,6 +69,41 @@ public class CategoryEditorGUI implements Listener {
         }
     }
     
+    private void loadDefaultItems() {
+        // Load default items based on category
+        switch (categoryName) {
+            case "WEAPONS":
+                categoryItems.addAll(createBasicItems(Arrays.asList(
+                    Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, 
+                    Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD,
+                    Material.BOW, Material.CROSSBOW, Material.TRIDENT
+                )));
+                break;
+            case "ARMOR":
+                categoryItems.addAll(createBasicItems(Arrays.asList(
+                    Material.LEATHER_HELMET, Material.IRON_HELMET, Material.DIAMOND_HELMET,
+                    Material.LEATHER_CHESTPLATE, Material.IRON_CHESTPLATE, Material.DIAMOND_CHESTPLATE,
+                    Material.SHIELD
+                )));
+                break;
+            case "FOOD":
+                categoryItems.addAll(createBasicItems(Arrays.asList(
+                    Material.APPLE, Material.GOLDEN_APPLE, Material.BREAD, Material.COOKED_BEEF,
+                    Material.COOKED_CHICKEN, Material.CAKE
+                )));
+                break;
+            // Add more defaults as needed
+        }
+    }
+    
+    private List<ItemStack> createBasicItems(List<Material> materials) {
+        List<ItemStack> items = new ArrayList<>();
+        for (Material material : materials) {
+            items.add(new ItemStack(material));
+        }
+        return items;
+    }
+    
     private void setupGUI() {
         gui.clear();
         
@@ -71,56 +112,40 @@ public class CategoryEditorGUI implements Listener {
             gui.setItem(i, categoryItems.get(i).clone());
         }
         
-        // Fill empty slots with glass panes
+        // Fill empty slots with air (so players can place items)
         for (int i = categoryItems.size(); i < 45; i++) {
-            ItemStack glassPane = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
-            ItemMeta meta = glassPane.getItemMeta();
-            meta.setDisplayName(ChatColor.GRAY + "Empty Slot");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Drop an item here to add it"));
-            glassPane.setItemMeta(meta);
-            gui.setItem(i, glassPane);
+            gui.setItem(i, null);
         }
         
-        // Add item button
-        ItemStack addButton = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
-        ItemMeta addMeta = addButton.getItemMeta();
-        addMeta.setDisplayName(ChatColor.GREEN + "Add Item");
-        addMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "Click with an item in your cursor",
-            ChatColor.GRAY + "to add it to this category"
-        ));
-        addButton.setItemMeta(addMeta);
-        gui.setItem(45, addButton);
-        
-        // Remove item button
-        ItemStack removeButton = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta removeMeta = removeButton.getItemMeta();
-        removeMeta.setDisplayName(ChatColor.RED + "Remove Mode");
-        removeMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "Click on items to remove them",
-            ChatColor.GRAY + "from this category"
-        ));
-        removeButton.setItemMeta(removeMeta);
-        gui.setItem(46, removeButton);
+        // Reset to default button
+        ItemStack resetButton = new ItemStack(Material.YELLOW_STAINED_GLASS_PANE);
+        ItemMeta resetMeta = resetButton.getItemMeta();
+        resetMeta.setDisplayName(ChatColor.YELLOW + "Reset to Default");
+        resetMeta.setLore(Arrays.asList(ChatColor.GRAY + "Load default items for this category"));
+        resetButton.setItemMeta(resetMeta);
+        gui.setItem(45, resetButton);
         
         // Clear all button
-        ItemStack clearButton = new ItemStack(Material.BARRIER);
+        ItemStack clearButton = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta clearMeta = clearButton.getItemMeta();
-        clearMeta.setDisplayName(ChatColor.DARK_RED + "Clear All");
+        clearMeta.setDisplayName(ChatColor.RED + "Clear All");
         clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Remove all items from category"));
         clearButton.setItemMeta(clearMeta);
-        gui.setItem(47, clearButton);
+        gui.setItem(46, clearButton);
         
         // Save button
         ItemStack saveButton = new ItemStack(Material.EMERALD);
         ItemMeta saveMeta = saveButton.getItemMeta();
         saveMeta.setDisplayName(ChatColor.GREEN + "Save Category");
-        saveMeta.setLore(Arrays.asList(ChatColor.GRAY + "Save changes to " + categoryName));
+        saveMeta.setLore(Arrays.asList(
+            ChatColor.GRAY + "Save changes to " + categoryName,
+            ChatColor.YELLOW + "Items: " + categoryItems.size()
+        ));
         saveButton.setItemMeta(saveMeta);
         gui.setItem(49, saveButton);
         
         // Cancel button
-        ItemStack cancelButton = new ItemStack(Material.REDSTONE);
+        ItemStack cancelButton = new ItemStack(Material.BARRIER);
         ItemMeta cancelMeta = cancelButton.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "Cancel");
         cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "Discard changes"));
@@ -147,76 +172,81 @@ public class CategoryEditorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
+        if (!clicker.equals(player) || !isActive) {
             return;
         }
         
-        event.setCancelled(true);
-        int slot = event.getSlot();
-        
-        plugin.getLogger().info("[DEBUG] CategoryEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
-        
-        if (slot == 45) { // Add item
-            ItemStack cursor = event.getCursor();
-            if (cursor != null && cursor.getType() != Material.AIR) {
-                addItem(cursor.clone());
-                event.setCursor(null);
-            } else {
-                player.sendMessage(ChatColor.RED + "Hold an item in your cursor to add it!");
-            }
-            return;
-        }
-        
-        if (slot == 46) { // Remove mode toggle
-            player.sendMessage(ChatColor.YELLOW + "Remove mode: Click on items to remove them!");
-            return;
-        }
-        
-        if (slot == 47) { // Clear all
-            clearAllItems();
-            return;
-        }
-        
-        if (slot == 49) { // Save
-            saveCategory();
-            return;
-        }
-        
-        if (slot == 53) { // Cancel
-            forceCleanup();
-            player.closeInventory();
-            return;
-        }
-        
-        // Handle item removal (slots 0-44)
-        if (slot < 45) {
-            ItemStack clickedItem = gui.getItem(slot);
-            if (clickedItem != null && clickedItem.getType() != Material.LIGHT_GRAY_STAINED_GLASS_PANE) {
-                removeItem(slot);
-            }
-        }
-    }
-    
-    private void addItem(ItemStack item) {
-        // Check if item already exists
-        for (ItemStack existing : categoryItems) {
-            if (existing.getType() == item.getType()) {
-                player.sendMessage(ChatColor.RED + "Item already exists in category!");
+        // Only handle clicks in our GUI
+        if (event.getInventory().equals(gui)) {
+            int slot = event.getSlot();
+            
+            plugin.getLogger().info("[DEBUG] CategoryEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
+            
+            // Handle control buttons
+            if (slot == 45) { // Reset to default
+                event.setCancelled(true);
+                resetToDefault();
                 return;
             }
+            
+            if (slot == 46) { // Clear all
+                event.setCancelled(true);
+                clearAllItems();
+                return;
+            }
+            
+            if (slot == 49) { // Save
+                event.setCancelled(true);
+                saveCategory();
+                return;
+            }
+            
+            if (slot == 53) { // Cancel
+                event.setCancelled(true);
+                forceCleanup();
+                player.closeInventory();
+                return;
+            }
+            
+            // Allow normal inventory interaction for slots 0-44
+            if (slot < 45) {
+                // Don't cancel - allow placing/removing items
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    updateCategoryItems();
+                }, 1L);
+            } else {
+                event.setCancelled(true);
+            }
         }
-        
-        categoryItems.add(new ItemStack(item.getType()));
-        setupGUI();
-        player.sendMessage(ChatColor.GREEN + "Added " + formatMaterialName(item.getType().name()) + " to category!");
     }
     
-    private void removeItem(int slot) {
-        if (slot < categoryItems.size()) {
-            ItemStack removed = categoryItems.remove(slot);
-            setupGUI();
-            player.sendMessage(ChatColor.YELLOW + "Removed " + formatMaterialName(removed.getType().name()) + " from category!");
+    private void updateCategoryItems() {
+        categoryItems.clear();
+        
+        for (int i = 0; i < 45; i++) {
+            ItemStack item = gui.getItem(i);
+            if (item != null && item.getType() != Material.AIR) {
+                categoryItems.add(new ItemStack(item.getType()));
+            }
         }
+        
+        // Update save button with new count
+        ItemStack saveButton = new ItemStack(Material.EMERALD);
+        ItemMeta saveMeta = saveButton.getItemMeta();
+        saveMeta.setDisplayName(ChatColor.GREEN + "Save Category");
+        saveMeta.setLore(Arrays.asList(
+            ChatColor.GRAY + "Save changes to " + categoryName,
+            ChatColor.YELLOW + "Items: " + categoryItems.size()
+        ));
+        saveButton.setItemMeta(saveMeta);
+        gui.setItem(49, saveButton);
+    }
+    
+    private void resetToDefault() {
+        categoryItems.clear();
+        loadDefaultItems();
+        setupGUI();
+        player.sendMessage(ChatColor.YELLOW + "Reset category " + categoryName + " to default items!");
     }
     
     private void clearAllItems() {
@@ -226,6 +256,9 @@ public class CategoryEditorGUI implements Listener {
     }
     
     private void saveCategory() {
+        // Update items from GUI first
+        updateCategoryItems();
+        
         File categoriesFile = new File(plugin.getDataFolder(), "categories.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(categoriesFile);
         
@@ -245,20 +278,6 @@ public class CategoryEditorGUI implements Listener {
             player.sendMessage(ChatColor.RED + "Failed to save category: " + e.getMessage());
             plugin.getLogger().severe("Failed to save category " + categoryName + ": " + e.getMessage());
         }
-    }
-    
-    private String formatMaterialName(String materialName) {
-        String[] words = materialName.toLowerCase().split("_");
-        StringBuilder formatted = new StringBuilder();
-        
-        for (String word : words) {
-            if (formatted.length() > 0) {
-                formatted.append(" ");
-            }
-            formatted.append(word.substring(0, 1).toUpperCase()).append(word.substring(1));
-        }
-        
-        return formatted.toString();
     }
     
     private void forceCleanup() {

@@ -1,29 +1,56 @@
 package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
-import com.yourname.customkitduels.data.RoundsDuel;
-import com.yourname.customkitduels.utils.ColorUtils;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.*;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Enhanced health display manager with better visual indicators
- * Uses action bar messages for real-time health display
+ * Enhanced health display manager that shows health below player name tags
+ * Uses scoreboard objectives to display health information below names
  */
 public class HealthDisplayManager {
     
     private final CustomKitDuels plugin;
     private final Map<UUID, BukkitRunnable> healthTasks;
+    private final Map<UUID, Scoreboard> originalScoreboards; // Store original scoreboards
+    private Scoreboard healthScoreboard; // Shared scoreboard for health display
+    private Objective healthObjective; // Health objective
     
     public HealthDisplayManager(CustomKitDuels plugin) {
         this.plugin = plugin;
         this.healthTasks = new HashMap<>();
+        this.originalScoreboards = new HashMap<>();
         
-        plugin.getLogger().info("HealthDisplayManager initialized with action bar support");
+        // Create shared health scoreboard
+        createHealthScoreboard();
+        
+        plugin.getLogger().info("HealthDisplayManager initialized with below-name health display");
+    }
+    
+    /**
+     * Create the shared health scoreboard
+     */
+    private void createHealthScoreboard() {
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        if (manager == null) {
+            plugin.getLogger().severe("ScoreboardManager is null! Cannot create health display.");
+            return;
+        }
+        
+        healthScoreboard = manager.getNewScoreboard();
+        
+        // Create health objective that displays below name
+        healthObjective = healthScoreboard.registerNewObjective("health", "health", ChatColor.RED + "❤");
+        healthObjective.setDisplaySlot(DisplaySlot.BELOW_NAME);
+        
+        plugin.getLogger().info("Created shared health scoreboard with below-name display");
     }
     
     /**
@@ -32,6 +59,13 @@ public class HealthDisplayManager {
     public void startHealthDisplay(Player player) {
         stopHealthDisplay(player); // Stop any existing display
         
+        // Store original scoreboard
+        originalScoreboards.put(player.getUniqueId(), player.getScoreboard());
+        
+        // Set player to use health scoreboard
+        player.setScoreboard(healthScoreboard);
+        
+        // Start health update task
         BukkitRunnable healthTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -48,7 +82,10 @@ public class HealthDisplayManager {
         healthTask.runTaskTimer(plugin, 0L, 10L); // Update every 0.5 seconds
         healthTasks.put(player.getUniqueId(), healthTask);
         
-        plugin.getLogger().info("Started health display for " + player.getName());
+        // Initial update
+        updateHealthDisplay(player);
+        
+        plugin.getLogger().info("Started below-name health display for " + player.getName());
     }
     
     /**
@@ -60,113 +97,91 @@ public class HealthDisplayManager {
             task.cancel();
         }
         
-        // Clear action bar
-        try {
-            player.sendActionBar("");
-        } catch (Exception e) {
-            // Ignore if action bar is not supported
-        }
-        
-        plugin.getLogger().info("Stopped health display for " + player.getName());
-    }
-    
-    /**
-     * Update health display for a player using action bar
-     */
-    private void updateHealthDisplay(Player player) {
-        // Get opponent
-        Player opponent = null;
-        RoundsDuel roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
-        if (roundsDuel != null) {
-            opponent = roundsDuel.getOpponent(player);
+        // Restore original scoreboard
+        Scoreboard originalBoard = originalScoreboards.remove(player.getUniqueId());
+        if (originalBoard != null) {
+            player.setScoreboard(originalBoard);
         } else {
-            // Try regular duel
-            var duel = plugin.getDuelManager().getDuel(player);
-            if (duel != null) {
-                opponent = duel.getOpponent(player);
+            // Fallback to main scoreboard
+            ScoreboardManager manager = Bukkit.getScoreboardManager();
+            if (manager != null) {
+                player.setScoreboard(manager.getMainScoreboard());
             }
         }
         
-        if (opponent == null || !opponent.isOnline()) {
+        plugin.getLogger().info("Stopped below-name health display for " + player.getName());
+    }
+    
+    /**
+     * Update health display for a player
+     */
+    private void updateHealthDisplay(Player player) {
+        if (healthObjective == null) {
             return;
         }
         
-        // Create health display
-        String healthDisplay = createHealthDisplay(player, opponent);
+        // Update health score for this player
+        double health = player.getHealth();
+        double maxHealth = player.getMaxHealth();
+        double hearts = health / 2.0; // Convert health points to hearts
         
-        // Send as action bar
-        try {
-            player.sendActionBar(ColorUtils.translateColors(healthDisplay));
-        } catch (Exception e) {
-            // Fallback to chat message if action bar fails
-            player.sendMessage(ColorUtils.translateColors(healthDisplay));
-        }
-    }
-    
-    /**
-     * Create health display string for both players
-     */
-    private String createHealthDisplay(Player player, Player opponent) {
-        // Player health
-        double playerHealth = player.getHealth();
-        double playerMaxHealth = player.getMaxHealth();
-        double playerHearts = playerHealth / 2.0;
-        double playerMaxHearts = playerMaxHealth / 2.0;
-        double playerHealthPercentage = playerHealth / playerMaxHealth;
+        // Set the score to show hearts (rounded to nearest 0.5)
+        int displayHearts = (int) Math.round(hearts * 2); // Multiply by 2 to show half hearts
+        Score score = healthObjective.getScore(player.getName());
+        score.setScore(displayHearts);
         
-        // Opponent health
-        double opponentHealth = opponent.getHealth();
-        double opponentMaxHealth = opponent.getMaxHealth();
-        double opponentHearts = opponentHealth / 2.0;
-        double opponentMaxHearts = opponentMaxHealth / 2.0;
-        double opponentHealthPercentage = opponentHealth / opponentMaxHealth;
-        
-        // Create health bars
-        String playerHealthBar = createHealthBar(playerHealthPercentage);
-        String opponentHealthBar = createHealthBar(opponentHealthPercentage);
-        
-        // Get colors based on health
-        String playerColor = ColorUtils.getHealthColorHex(playerHealthPercentage);
-        String opponentColor = ColorUtils.getHealthColorHex(opponentHealthPercentage);
-        
-        // Format health text
-        String playerHealthText = String.format("%.1f/%.1f", playerHearts, playerMaxHearts);
-        String opponentHealthText = String.format("%.1f/%.1f", opponentHearts, opponentMaxHearts);
-        
-        // Create display
-        return String.format(
-            "<white>You: %s%s ❤ %s</white> <gray>|</gray> <white>%s: %s%s ❤ %s</white>",
-            playerColor, playerHealthText, playerHealthBar,
-            opponent.getName(), opponentColor, opponentHealthText, opponentHealthBar
-        );
-    }
-    
-    /**
-     * Create a visual health bar
-     */
-    private String createHealthBar(double healthPercentage) {
-        int totalBars = 10;
-        int filledBars = (int) Math.round(healthPercentage * totalBars);
-        
-        StringBuilder healthBar = new StringBuilder();
-        healthBar.append("<gray>[</gray>");
-        
-        for (int i = 0; i < totalBars; i++) {
-            if (i < filledBars) {
-                if (healthPercentage > 0.6) {
-                    healthBar.append("<green>|</green>");
-                } else if (healthPercentage > 0.3) {
-                    healthBar.append("<yellow>|</yellow>");
-                } else {
-                    healthBar.append("<red>|</red>");
+        // Also update for opponent if they're in the same duel
+        var roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
+        if (roundsDuel != null) {
+            Player opponent = roundsDuel.getOpponent(player);
+            if (opponent != null && opponent.isOnline()) {
+                // Make sure opponent also uses the health scoreboard
+                if (!opponent.getScoreboard().equals(healthScoreboard)) {
+                    originalScoreboards.put(opponent.getUniqueId(), opponent.getScoreboard());
+                    opponent.setScoreboard(healthScoreboard);
                 }
-            } else {
-                healthBar.append("<dark_gray>|</dark_gray>");
+                
+                // Update opponent's health display
+                double opponentHealth = opponent.getHealth();
+                double opponentMaxHealth = opponent.getMaxHealth();
+                double opponentHearts = opponentHealth / 2.0;
+                int opponentDisplayHearts = (int) Math.round(opponentHearts * 2);
+                Score opponentScore = healthObjective.getScore(opponent.getName());
+                opponentScore.setScore(opponentDisplayHearts);
+            }
+        } else {
+            // Check regular duel
+            var duel = plugin.getDuelManager().getDuel(player);
+            if (duel != null) {
+                Player opponent = duel.getOpponent(player);
+                if (opponent != null && opponent.isOnline()) {
+                    // Make sure opponent also uses the health scoreboard
+                    if (!opponent.getScoreboard().equals(healthScoreboard)) {
+                        originalScoreboards.put(opponent.getUniqueId(), opponent.getScoreboard());
+                        opponent.setScoreboard(healthScoreboard);
+                    }
+                    
+                    // Update opponent's health display
+                    double opponentHealth = opponent.getHealth();
+                    double opponentMaxHealth = opponent.getMaxHealth();
+                    double opponentHearts = opponentHealth / 2.0;
+                    int opponentDisplayHearts = (int) Math.round(opponentHearts * 2);
+                    Score opponentScore = healthObjective.getScore(opponent.getName());
+                    opponentScore.setScore(opponentDisplayHearts);
+                }
             }
         }
-        
-        healthBar.append("<gray>]</gray>");
-        return healthBar.toString();
+    }
+    
+    /**
+     * Setup health display for all online players (used on plugin enable/reload)
+     */
+    public void setupHealthDisplayForAll() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (plugin.getDuelManager().isInAnyDuel(player)) {
+                startHealthDisplay(player);
+            }
+        }
     }
     
     /**
@@ -186,13 +201,18 @@ public class HealthDisplayManager {
         }
         healthTasks.clear();
         
-        // Clear action bars for all online players
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            try {
-                player.sendActionBar("");
-            } catch (Exception e) {
-                // Ignore if action bar is not supported
+        // Restore all original scoreboards
+        for (Map.Entry<UUID, Scoreboard> entry : originalScoreboards.entrySet()) {
+            Player player = Bukkit.getPlayer(entry.getKey());
+            if (player != null && player.isOnline()) {
+                player.setScoreboard(entry.getValue());
             }
+        }
+        originalScoreboards.clear();
+        
+        // Clean up health scoreboard
+        if (healthScoreboard != null && healthObjective != null) {
+            healthObjective.unregister();
         }
         
         plugin.getLogger().info("HealthDisplayManager cleaned up");

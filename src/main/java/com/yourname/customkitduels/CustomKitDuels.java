@@ -40,10 +40,15 @@ public class CustomKitDuels extends JavaPlugin {
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         
+        // Setup health display for already online players (in case of /reload)
+        getServer().getScheduler().runTaskLater(this, () -> {
+            healthDisplayManager.setupHealthDisplayForAll();
+        }, 20L);
+        
         getLogger().info("CustomKitDuels has been enabled!");
         getLogger().info("Features:");
         getLogger().info("- FastBoard scoreboards with Adventure API hex color support");
-        getLogger().info("- Enhanced action bar health indicators");
+        getLogger().info("- Below-name health indicators using scoreboard objectives");
         getLogger().info("- Proper health restoration system");
         getLogger().info("- Player disconnection handling");
         getLogger().info("- Full compatibility with all server versions");

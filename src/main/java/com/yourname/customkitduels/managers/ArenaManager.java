@@ -153,18 +153,18 @@ public class ArenaManager {
         }
         
         try {
-            // Use FAWE API to generate schematic
-            com.sk89q.worldedit.bukkit.BukkitAdapter adapter = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(player.getWorld());
+            // Use FAWE API to generate schematic - FIXED TYPE CONVERSIONS
+            com.sk89q.worldedit.world.World world = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(player.getWorld());
             com.sk89q.worldedit.math.BlockVector3 min = com.sk89q.worldedit.bukkit.BukkitAdapter.asBlockVector(arena.getPos1());
             com.sk89q.worldedit.math.BlockVector3 max = com.sk89q.worldedit.bukkit.BukkitAdapter.asBlockVector(arena.getPos2());
             
-            com.sk89q.worldedit.regions.CuboidRegion region = new com.sk89q.worldedit.regions.CuboidRegion(adapter, min, max);
+            com.sk89q.worldedit.regions.CuboidRegion region = new com.sk89q.worldedit.regions.CuboidRegion(world, min, max);
             
             com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard clipboard = 
                 new com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard(region);
             
             com.sk89q.worldedit.function.operation.ForwardExtentCopy copy = 
-                new com.sk89q.worldedit.function.operation.ForwardExtentCopy(adapter, region, clipboard, min);
+                new com.sk89q.worldedit.function.operation.ForwardExtentCopy(world, region, clipboard, min);
             
             com.sk89q.worldedit.function.operation.Operations.complete(copy);
             
@@ -204,7 +204,7 @@ public class ArenaManager {
                 return;
             }
             
-            // Load and paste schematic using FAWE
+            // Load and paste schematic using FAWE - FIXED TYPE CONVERSIONS
             com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat format = 
                 com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat.SPONGE_SCHEMATIC;
             
@@ -214,7 +214,7 @@ public class ArenaManager {
                 clipboard = reader.read();
             }
             
-            com.sk89q.worldedit.bukkit.BukkitWorld world = 
+            com.sk89q.worldedit.world.World world = 
                 com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(arena.getPos1().getWorld());
             
             try (com.sk89q.worldedit.EditSession editSession = 

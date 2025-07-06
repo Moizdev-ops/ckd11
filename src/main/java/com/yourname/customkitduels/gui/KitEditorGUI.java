@@ -189,7 +189,7 @@ public class KitEditorGUI implements Listener {
         int slot = event.getSlot();
         ClickType clickType = event.getClick();
         
-        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType);
+        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType + ", Active: " + isActive);
         
         // Handle control buttons
         if (slot == 45) { // Save button
@@ -237,41 +237,38 @@ public class KitEditorGUI implements Listener {
     }
     
     private void openCategorySelector(int slot) {
-        // Temporarily deactivate this GUI to prevent cursor jumping
+        plugin.getLogger().info("[DEBUG] Opening category selector for slot " + slot);
+        
+        // Deactivate this GUI immediately to prevent further clicks
         isActive = false;
         
-        // Use a longer delay and ensure the GUI is properly closed
+        // Open category selector with minimal delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.closeInventory();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new CategorySelectorGUI(plugin, player, this, slot).open();
-            }, 2L);
+            new CategorySelectorGUI(plugin, player, this, slot).open();
         }, 1L);
     }
     
     private void openArmorSelector(int slot) {
-        // Temporarily deactivate this GUI to prevent cursor jumping
+        plugin.getLogger().info("[DEBUG] Opening armor selector for slot " + slot);
+        
+        // Deactivate this GUI immediately to prevent further clicks
         isActive = false;
         
-        // Use a longer delay and ensure the GUI is properly closed
+        // Open armor selector with minimal delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.closeInventory();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new ArmorSelectorGUI(plugin, player, this, slot).open();
-            }, 2L);
+            new ArmorSelectorGUI(plugin, player, this, slot).open();
         }, 1L);
     }
     
     private void openItemModificationMenu(int slot, ItemStack item) {
-        // Temporarily deactivate this GUI to prevent cursor jumping
+        plugin.getLogger().info("[DEBUG] Opening item modification menu for slot " + slot);
+        
+        // Deactivate this GUI immediately to prevent further clicks
         isActive = false;
         
-        // Use a longer delay and ensure the GUI is properly closed
+        // Open modification menu with minimal delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.closeInventory();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                new ItemModificationGUI(plugin, player, this, slot, item).open();
-            }, 2L);
+            new ItemModificationGUI(plugin, player, this, slot, item).open();
         }, 1L);
     }
     
@@ -382,9 +379,12 @@ public class KitEditorGUI implements Listener {
         // Refresh the GUI content
         setupGUI();
         
-        // Reopen the GUI
+        // Close current inventory and reopen with delay to prevent cursor issues
+        player.closeInventory();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.openInventory(gui);
+            if (isActive) {
+                player.openInventory(gui);
+            }
         }, 1L);
     }
     

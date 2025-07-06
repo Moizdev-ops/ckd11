@@ -136,7 +136,16 @@ public class CategorySelectorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
-        player.openInventory(gui);
+        
+        // Close current inventory first to prevent cursor issues
+        player.closeInventory();
+        
+        // Open with a small delay to ensure clean transition
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (isActive) {
+                player.openInventory(gui);
+            }
+        }, 1L);
     }
     
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -152,7 +161,7 @@ public class CategorySelectorGUI implements Listener {
         event.setCancelled(true);
         int slot = event.getSlot();
         
-        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
+        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
         
         switch (slot) {
             case 10: // Weapons
@@ -194,27 +203,27 @@ public class CategorySelectorGUI implements Listener {
     private void openItemSelector(String category) {
         plugin.getLogger().info("[DEBUG] Opening ItemSelector for category " + category + " for player " + player.getName());
         
-        // Deactivate and close this GUI
+        // Deactivate this GUI immediately
         isActive = false;
         forceCleanup();
         
-        // Open item selector with delay
+        // Open item selector with proper delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
-        }, 2L);
+        }, 1L);
     }
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
         
-        // Deactivate and close this GUI
+        // Deactivate this GUI immediately
         isActive = false;
         forceCleanup();
         
-        // Return to parent with delay
+        // Return to parent with proper delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
-        }, 2L);
+        }, 1L);
     }
     
     private void forceCleanup() {
@@ -242,7 +251,7 @@ public class CategorySelectorGUI implements Listener {
                         forceCleanup();
                         parentGUI.refreshAndReopen();
                     }
-                }, 5L);
+                }, 3L);
             }
         }
     }

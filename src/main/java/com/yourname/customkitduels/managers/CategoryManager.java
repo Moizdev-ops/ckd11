@@ -49,7 +49,7 @@ public class CategoryManager {
         defaultCategories.put("WEAPONS", Arrays.asList(
             "WOODEN_SWORD", "STONE_SWORD", "IRON_SWORD", "GOLDEN_SWORD", "DIAMOND_SWORD", "NETHERITE_SWORD",
             "WOODEN_AXE", "STONE_AXE", "IRON_AXE", "GOLDEN_AXE", "DIAMOND_AXE", "NETHERITE_AXE",
-            "BOW", "CROSSBOW", "TRIDENT", "MACE"
+            "BOW", "CROSSBOW", "TRIDENT", "MACE", "ARROW", "SPECTRAL_ARROW", "TIPPED_ARROW"
         ));
         
         // ARMOR
@@ -65,30 +65,34 @@ public class CategoryManager {
         
         // BLOCKS
         defaultCategories.put("BLOCKS", Arrays.asList(
-            "STONE", "COBBLESTONE", "DIRT", "GRASS_BLOCK", "SAND", "GRAVEL",
-            "OAK_LOG", "OAK_PLANKS", "GLASS", "OBSIDIAN", "BEDROCK",
-            "IRON_BLOCK", "GOLD_BLOCK", "DIAMOND_BLOCK", "EMERALD_BLOCK",
-            "TNT", "WHITE_WOOL", "BRICKS", "STONE_BRICKS", "NETHERRACK", "END_STONE",
-            "RED_WOOL", "BLUE_WOOL", "GREEN_WOOL", "YELLOW_WOOL", "BLACK_WOOL",
-            "DEEPSLATE", "COPPER_BLOCK", "AMETHYST_BLOCK", "CALCITE", "TUFF"
+            "STONE", "COBBLESTONE", "DIRT", "GRASS_BLOCK", "SAND", "GRAVEL", "CLAY",
+            "OAK_LOG", "OAK_PLANKS", "GLASS", "OBSIDIAN", "BEDROCK", "END_STONE",
+            "IRON_BLOCK", "GOLD_BLOCK", "DIAMOND_BLOCK", "EMERALD_BLOCK", "NETHERITE_BLOCK",
+            "TNT", "WHITE_WOOL", "RED_WOOL", "BLUE_WOOL", "GREEN_WOOL", "YELLOW_WOOL", "BLACK_WOOL",
+            "ORANGE_WOOL", "PINK_WOOL", "PURPLE_WOOL", "BROWN_WOOL", "GRAY_WOOL", "LIGHT_GRAY_WOOL",
+            "CYAN_WOOL", "LIGHT_BLUE_WOOL", "LIME_WOOL", "MAGENTA_WOOL",
+            "BRICKS", "STONE_BRICKS", "NETHERRACK", "DEEPSLATE", "COPPER_BLOCK", "AMETHYST_BLOCK",
+            "CALCITE", "TUFF", "DRIPSTONE_BLOCK", "MOSS_BLOCK", "ROOTED_DIRT"
         ));
         
         // FOOD
         defaultCategories.put("FOOD", Arrays.asList(
             "APPLE", "GOLDEN_APPLE", "ENCHANTED_GOLDEN_APPLE", "BREAD", "COOKED_BEEF",
-            "COOKED_PORKCHOP", "COOKED_CHICKEN", "COOKED_COD", "COOKED_SALMON",
-            "CAKE", "COOKIE", "MELON_SLICE", "SWEET_BERRIES", "GLOW_BERRIES",
-            "CARROT", "POTATO", "BAKED_POTATO", "BEETROOT", "MUSHROOM_STEW",
-            "SUSPICIOUS_STEW", "RABBIT_STEW", "PUMPKIN_PIE", "DRIED_KELP"
+            "COOKED_PORKCHOP", "COOKED_CHICKEN", "COOKED_COD", "COOKED_SALMON", "COOKED_MUTTON",
+            "COOKED_RABBIT", "CAKE", "COOKIE", "MELON_SLICE", "SWEET_BERRIES", "GLOW_BERRIES",
+            "CARROT", "POTATO", "BAKED_POTATO", "BEETROOT", "MUSHROOM_STEW", "BEETROOT_SOUP",
+            "SUSPICIOUS_STEW", "RABBIT_STEW", "PUMPKIN_PIE", "DRIED_KELP", "HONEY_BOTTLE",
+            "CHORUS_FRUIT", "POISONOUS_POTATO", "SPIDER_EYE", "ROTTEN_FLESH", "PUFFERFISH",
+            "TROPICAL_FISH", "COD", "SALMON", "BEEF", "PORKCHOP", "CHICKEN", "MUTTON", "RABBIT"
         ));
         
         // POTIONS
         defaultCategories.put("POTIONS", Arrays.asList(
-            "POTION", "SPLASH_POTION", "LINGERING_POTION",
-            "GLASS_BOTTLE", "BREWING_STAND", "CAULDRON", "BLAZE_POWDER", "NETHER_WART",
-            "SPIDER_EYE", "FERMENTED_SPIDER_EYE", "MAGMA_CREAM", "SUGAR",
+            "POTION", "SPLASH_POTION", "LINGERING_POTION", "GLASS_BOTTLE", "HONEY_BOTTLE",
+            "BREWING_STAND", "CAULDRON", "BLAZE_POWDER", "NETHER_WART", "REDSTONE",
+            "GLOWSTONE_DUST", "SPIDER_EYE", "FERMENTED_SPIDER_EYE", "MAGMA_CREAM", "SUGAR",
             "GLISTERING_MELON_SLICE", "GOLDEN_CARROT", "RABBIT_FOOT", "DRAGON_BREATH",
-            "GHAST_TEAR", "PHANTOM_MEMBRANE", "HONEY_BOTTLE", "MILK_BUCKET"
+            "GHAST_TEAR", "PHANTOM_MEMBRANE", "MILK_BUCKET", "GUNPOWDER"
         ));
         
         // TOOLS
@@ -97,38 +101,57 @@ public class CategoryManager {
             "WOODEN_SHOVEL", "STONE_SHOVEL", "IRON_SHOVEL", "GOLDEN_SHOVEL", "DIAMOND_SHOVEL", "NETHERITE_SHOVEL",
             "WOODEN_HOE", "STONE_HOE", "IRON_HOE", "GOLDEN_HOE", "DIAMOND_HOE", "NETHERITE_HOE",
             "FISHING_ROD", "SHEARS", "FLINT_AND_STEEL", "BUCKET", "WATER_BUCKET", "LAVA_BUCKET",
-            "COMPASS", "CLOCK", "SPYGLASS", "BRUSH"
+            "POWDER_SNOW_BUCKET", "AXOLOTL_BUCKET", "COD_BUCKET", "SALMON_BUCKET", "TROPICAL_FISH_BUCKET", "PUFFERFISH_BUCKET",
+            "COMPASS", "CLOCK", "SPYGLASS", "BRUSH", "RECOVERY_COMPASS"
         ));
         
         // UTILITY
         defaultCategories.put("UTILITY", Arrays.asList(
-            "ENDER_PEARL", "ENDER_EYE", "FLINT_AND_STEEL", "FIRE_CHARGE",
-            "SNOWBALL", "EGG", "FISHING_ROD", "COMPASS", "CLOCK",
-            "FILLED_MAP", "LEAD", "NAME_TAG", "SADDLE", "OAK_BOAT",
-            "MINECART", "CHEST_MINECART", "FURNACE_MINECART", "TNT_MINECART",
-            "TOTEM_OF_UNDYING", "ELYTRA", "FIREWORK_ROCKET", "RECOVERY_COMPASS",
-            "ECHO_SHARD", "GOAT_HORN", "WIND_CHARGE"
+            "ENDER_PEARL", "ENDER_EYE", "FLINT_AND_STEEL", "FIRE_CHARGE", "WIND_CHARGE",
+            "SNOWBALL", "EGG", "FISHING_ROD", "COMPASS", "CLOCK", "RECOVERY_COMPASS",
+            "FILLED_MAP", "LEAD", "NAME_TAG", "SADDLE", "OAK_BOAT", "OAK_CHEST_BOAT",
+            "SPRUCE_BOAT", "BIRCH_BOAT", "JUNGLE_BOAT", "ACACIA_BOAT", "DARK_OAK_BOAT", "MANGROVE_BOAT", "CHERRY_BOAT", "BAMBOO_RAFT",
+            "MINECART", "CHEST_MINECART", "FURNACE_MINECART", "TNT_MINECART", "HOPPER_MINECART",
+            "TOTEM_OF_UNDYING", "ELYTRA", "FIREWORK_ROCKET", "FIREWORK_STAR",
+            "ECHO_SHARD", "GOAT_HORN", "SPYGLASS", "BUNDLE"
         ));
         
         // MISC
         defaultCategories.put("MISC", Arrays.asList(
-            "BOOK", "PAPER", "FEATHER", "INK_SAC", "BONE", "STRING",
-            "STICK", "COAL", "CHARCOAL", "DIAMOND", "EMERALD", "GOLD_INGOT",
-            "IRON_INGOT", "REDSTONE", "GUNPOWDER", "GLOWSTONE_DUST",
-            "EXPERIENCE_BOTTLE", "ENCHANTED_BOOK", "ANVIL", "ENCHANTING_TABLE",
-            "NETHERITE_INGOT", "COPPER_INGOT", "AMETHYST_SHARD", "PRISMARINE_SHARD",
-            "HEART_OF_THE_SEA", "NAUTILUS_SHELL", "DISC_FRAGMENT_5"
+            "BOOK", "WRITABLE_BOOK", "WRITTEN_BOOK", "PAPER", "FEATHER", "INK_SAC", "BONE", "STRING",
+            "STICK", "COAL", "CHARCOAL", "DIAMOND", "EMERALD", "GOLD_INGOT", "IRON_INGOT",
+            "COPPER_INGOT", "NETHERITE_INGOT", "REDSTONE", "GUNPOWDER", "GLOWSTONE_DUST",
+            "EXPERIENCE_BOTTLE", "ENCHANTED_BOOK", "ANVIL", "ENCHANTING_TABLE", "ENDER_CHEST",
+            "AMETHYST_SHARD", "PRISMARINE_SHARD", "PRISMARINE_CRYSTALS", "HEART_OF_THE_SEA", "NAUTILUS_SHELL",
+            "MUSIC_DISC_13", "MUSIC_DISC_CAT", "MUSIC_DISC_BLOCKS", "MUSIC_DISC_CHIRP", "MUSIC_DISC_FAR",
+            "MUSIC_DISC_MALL", "MUSIC_DISC_MELLOHI", "MUSIC_DISC_STAL", "MUSIC_DISC_STRAD", "MUSIC_DISC_WARD",
+            "MUSIC_DISC_11", "MUSIC_DISC_WAIT", "MUSIC_DISC_OTHERSIDE", "MUSIC_DISC_5", "MUSIC_DISC_PIGSTEP",
+            "DISC_FRAGMENT_5", "NETHER_STAR", "WITHER_SKELETON_SKULL", "DRAGON_HEAD", "PLAYER_HEAD",
+            "ZOMBIE_HEAD", "CREEPER_HEAD", "SKELETON_SKULL", "BELL", "LANTERN", "SOUL_LANTERN"
         ));
         
-        // Create files for categories that don't exist
+        // Create files for categories that don't exist or are empty
         for (Map.Entry<String, List<String>> entry : defaultCategories.entrySet()) {
             File categoryFile = new File(categoriesFolder, entry.getKey() + ".yml");
+            boolean shouldCreate = false;
+            
             if (!categoryFile.exists()) {
+                shouldCreate = true;
+            } else {
+                // Check if file is empty or has no items
+                FileConfiguration existingConfig = YamlConfiguration.loadConfiguration(categoryFile);
+                List<String> existingItems = existingConfig.getStringList("items");
+                if (existingItems.isEmpty()) {
+                    shouldCreate = true;
+                }
+            }
+            
+            if (shouldCreate) {
                 FileConfiguration config = new YamlConfiguration();
                 config.set("items", entry.getValue());
                 try {
                     config.save(categoryFile);
-                    plugin.getLogger().info("Created default category file: " + entry.getKey() + ".yml");
+                    plugin.getLogger().info("Created/Updated default category file: " + entry.getKey() + ".yml with " + entry.getValue().size() + " items");
                 } catch (IOException e) {
                     plugin.getLogger().severe("Failed to create category file " + entry.getKey() + ": " + e.getMessage());
                 }

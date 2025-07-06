@@ -3,7 +3,9 @@ package com.yourname.customkitduels.commands;
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Arena;
 import com.yourname.customkitduels.data.Kit;
+import com.yourname.customkitduels.gui.CategoryEditorGUI;
 import com.yourname.customkitduels.gui.KitEditorGUI;
+import com.yourname.customkitduels.gui.RoundsSelectorGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -46,6 +48,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 return handleDuel(sender, args);
             case "accept":
                 return handleAccept(sender);
+            case "editcategory":
+                return handleEditCategory(sender, args);
             case "setarena":
                 return handleSetArena(sender, args);
             case "setpos1":
@@ -70,8 +74,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/ckd editkit <name> - Edit an existing kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd deletekit <name> - Delete a kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd listkits - List your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player");
+        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player (opens rounds selector)");
         sender.sendMessage(ChatColor.YELLOW + "/ckd accept - Accept a duel request");
+        sender.sendMessage(ChatColor.YELLOW + "/ckd editcategory <category> - Edit item category");
         if (sender.hasPermission("customkitduels.admin")) {
             sender.sendMessage(ChatColor.AQUA + "Admin Commands:");
             sender.sendMessage(ChatColor.YELLOW + "/ckd setarena <name> - Create arena");
@@ -228,7 +233,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        plugin.getDuelManager().sendDuelRequest(player, target, kit);
+        // Open rounds selector GUI instead of sending duel request directly
+        new RoundsSelectorGUI(plugin, player, target, kit).open();
         return true;
     }
     
@@ -244,7 +250,30 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
         
         Player player = (Player) sender;
-        plugin.getDuelManager().acceptDuel(player);
+        plugin.getDuelManager().acceptRoundsDuel(player);
+        return true;
+    }
+    
+    private boolean handleEditCategory(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "Only players can edit categories.");
+            return true;
+        }
+        
+        if (!sender.hasPermission("customkitduels.admin")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+        
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /ckd editcategory <category_name>");
+            return true;
+        }
+        
+        Player player = (Player) sender;
+        String categoryName = args[1];
+        
+        new CategoryEditorGUI(plugin, player, categoryName).open();
         return true;
     }
     
@@ -405,7 +434,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         
         if (args.length == 1) {
-            List<String> commands = Arrays.asList("createkit", "editkit", "deletekit", "listkits", "duel", "accept");
+            List<String> commands = Arrays.asList("createkit", "editkit", "deletekit", "listkits", "duel", "accept", "editcategory");
             if (sender.hasPermission("customkitduels.admin")) {
                 commands = new ArrayList<>(commands);
                 commands.addAll(Arrays.asList("setarena", "setpos1", "setpos2", "setspawn1", "setspawn2", "reload"));
@@ -429,6 +458,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                             .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
                             .collect(Collectors.toList());
                 }
+            } else if (args[0].equalsIgnoreCase("editcategory")) {
+                return Arrays.asList("WEAPONS", "ARMOR", "BLOCKS", "FOOD", "POTIONS", "TOOLS", "UTILITY", "MISC").stream()
+                        .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
             } else if (args[0].equalsIgnoreCase("setpos1") || args[0].equalsIgnoreCase("setpos2") ||
                        args[0].equalsIgnoreCase("setspawn1") || args[0].equalsIgnoreCase("setspawn2")) {
                 return plugin.getArenaManager().getAvailableArenas().stream()

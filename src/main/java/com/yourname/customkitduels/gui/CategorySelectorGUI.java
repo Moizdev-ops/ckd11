@@ -144,42 +144,40 @@ public class CategorySelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
-            return;
-        }
+        // CRITICAL: Only handle events for our specific player and GUI
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (!event.getInventory().equals(gui)) return;
+        if (!isActive) return;
         
         event.setCancelled(true);
         int slot = event.getSlot();
         
-        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
-        
-        // Deactivate immediately to prevent double-clicks
-        isActive = false;
+        plugin.getLogger().info("[DEBUG] CategorySelectorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
         
         switch (slot) {
             case 10: // Weapons
-                openItemSelector(ItemCategory.WEAPONS);
+                openItemSelector("WEAPONS");
                 break;
             case 11: // Armor
-                openItemSelector(ItemCategory.ARMOR);
+                openItemSelector("ARMOR");
                 break;
             case 12: // Blocks
-                openItemSelector(ItemCategory.BLOCKS);
+                openItemSelector("BLOCKS");
                 break;
             case 13: // Food
-                openItemSelector(ItemCategory.FOOD);
+                openItemSelector("FOOD");
                 break;
             case 14: // Potions
-                openItemSelector(ItemCategory.POTIONS);
+                openItemSelector("POTIONS");
                 break;
             case 15: // Tools
-                openItemSelector(ItemCategory.TOOLS);
+                openItemSelector("TOOLS");
                 break;
             case 16: // Utility
-                openItemSelector(ItemCategory.UTILITY);
+                openItemSelector("UTILITY");
                 break;
             case 19: // Misc
-                openItemSelector(ItemCategory.MISC);
+                openItemSelector("MISC");
                 break;
             case 21: // Clear slot
                 plugin.getLogger().info("[DEBUG] Clear slot clicked for slot " + targetSlot);
@@ -190,27 +188,33 @@ public class CategorySelectorGUI implements Listener {
                 plugin.getLogger().info("[DEBUG] Back button clicked");
                 returnToParent();
                 break;
-            default:
-                // Re-activate if invalid slot clicked
-                isActive = true;
-                break;
         }
     }
     
-    private void openItemSelector(ItemCategory category) {
+    private void openItemSelector(String category) {
         plugin.getLogger().info("[DEBUG] Opening ItemSelector for category " + category + " for player " + player.getName());
+        
+        // Deactivate and close this GUI
+        isActive = false;
         forceCleanup();
+        
+        // Open item selector with delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemSelectorGUI(plugin, player, parentGUI, targetSlot, category).open();
-        }, 1L);
+        }, 2L);
     }
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        
+        // Deactivate and close this GUI
+        isActive = false;
         forceCleanup();
+        
+        // Return to parent with delay
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
-        }, 1L);
+        }, 2L);
     }
     
     private void forceCleanup() {
@@ -227,21 +231,19 @@ public class CategorySelectorGUI implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
-        if (closer.equals(player) && event.getInventory().equals(gui)) {
+        if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
             plugin.getLogger().info("[DEBUG] CategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
             
-            // Delay cleanup to allow for navigation
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (isActive && activeGuis.containsKey(player.getUniqueId())) {
-                    plugin.getLogger().info("[DEBUG] Final cleanup CategorySelectorGUI for " + player.getName());
-                    forceCleanup();
-                    parentGUI.refreshAndReopen();
-                }
-            }, 3L);
+            // Only cleanup if still active (not already handled by navigation)
+            if (isActive) {
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (isActive && activeGuis.containsKey(player.getUniqueId())) {
+                        plugin.getLogger().info("[DEBUG] Final cleanup CategorySelectorGUI for " + player.getName());
+                        forceCleanup();
+                        parentGUI.refreshAndReopen();
+                    }
+                }, 5L);
+            }
         }
-    }
-    
-    public enum ItemCategory {
-        WEAPONS, ARMOR, BLOCKS, FOOD, POTIONS, TOOLS, UTILITY, MISC
     }
 }

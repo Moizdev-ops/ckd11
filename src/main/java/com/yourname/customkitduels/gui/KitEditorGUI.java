@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
@@ -67,46 +68,75 @@ public class KitEditorGUI implements Listener {
         
         // Fill main inventory slots (0-35) with colored glass panes or items
         for (int i = 0; i < 36; i++) {
-            if (kitContents[i] != null) {
-                gui.setItem(i, kitContents[i].clone());
-            } else {
-                ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
-                ItemMeta meta = glassPane.getItemMeta();
-                meta.setDisplayName(ChatColor.AQUA + "Slot #" + (i + 1));
-                meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add an item"));
-                glassPane.setItemMeta(meta);
-                gui.setItem(i, glassPane);
-            }
+            updateSlot(i);
         }
         
         // Fill armor slots (36-39) with colored glass panes or items
-        String[] armorSlots = {"Boots", "Leggings", "Chestplate", "Helmet"};
         for (int i = 0; i < 4; i++) {
-            if (kitArmor[i] != null) {
-                gui.setItem(36 + i, kitArmor[i].clone());
-            } else {
-                ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-                ItemMeta meta = glassPane.getItemMeta();
-                meta.setDisplayName(ChatColor.AQUA + armorSlots[i] + " Slot");
-                meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add armor"));
-                glassPane.setItemMeta(meta);
-                gui.setItem(36 + i, glassPane);
-            }
+            updateArmorSlot(i);
         }
         
         // Add offhand slot (slot 40)
+        updateOffhandSlot();
+        
+        // Add control buttons
+        setupControlButtons();
+        
+        plugin.getLogger().info("[DEBUG] GUI setup complete for " + player.getName());
+    }
+    
+    private void updateSlot(int slot) {
+        if (kitContents[slot] != null) {
+            gui.setItem(slot, kitContents[slot].clone());
+        } else {
+            ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+            ItemMeta meta = glassPane.getItemMeta();
+            meta.setDisplayName(ChatColor.AQUA + "Slot #" + (slot + 1));
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Left-click to add an item",
+                ChatColor.GRAY + "Right-click to modify (if item present)"
+            ));
+            glassPane.setItemMeta(meta);
+            gui.setItem(slot, glassPane);
+        }
+    }
+    
+    private void updateArmorSlot(int armorIndex) {
+        String[] armorSlots = {"Boots", "Leggings", "Chestplate", "Helmet"};
+        int guiSlot = 36 + armorIndex;
+        
+        if (kitArmor[armorIndex] != null) {
+            gui.setItem(guiSlot, kitArmor[armorIndex].clone());
+        } else {
+            ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
+            ItemMeta meta = glassPane.getItemMeta();
+            meta.setDisplayName(ChatColor.AQUA + armorSlots[armorIndex] + " Slot");
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Left-click to add " + armorSlots[armorIndex].toLowerCase(),
+                ChatColor.GRAY + "Right-click to modify (if armor present)"
+            ));
+            glassPane.setItemMeta(meta);
+            gui.setItem(guiSlot, glassPane);
+        }
+    }
+    
+    private void updateOffhandSlot() {
         if (offhandItem != null) {
             gui.setItem(40, offhandItem.clone());
         } else {
             ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
             ItemMeta offhandMeta = offhandPane.getItemMeta();
             offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
-            offhandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add offhand item"));
+            offhandMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Left-click to add offhand item",
+                ChatColor.GRAY + "Right-click to modify (if item present)"
+            ));
             offhandPane.setItemMeta(offhandMeta);
             gui.setItem(40, offhandPane);
         }
-        
-        // Add control buttons
+    }
+    
+    private void setupControlButtons() {
         ItemStack saveButton = new ItemStack(Material.EMERALD);
         ItemMeta saveMeta = saveButton.getItemMeta();
         saveMeta.setDisplayName(ChatColor.GREEN + "Save Kit");
@@ -128,8 +158,6 @@ public class KitEditorGUI implements Listener {
         clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to clear all slots"));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
-        
-        plugin.getLogger().info("[DEBUG] GUI setup complete for " + player.getName());
     }
     
     public void open() {
@@ -152,14 +180,16 @@ public class KitEditorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
-            return;
-        }
+        // CRITICAL: Only handle events for our specific player and GUI
+        if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
+        if (!event.getInventory().equals(gui)) return;
+        if (!isActive) return;
         
         event.setCancelled(true);
         int slot = event.getSlot();
+        ClickType clickType = event.getClick();
         
-        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", Active: " + isActive);
+        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType);
         
         // Handle control buttons
         if (slot == 45) { // Save button
@@ -171,7 +201,6 @@ public class KitEditorGUI implements Listener {
         if (slot == 53) { // Cancel button
             plugin.getLogger().info("[DEBUG] Cancel button clicked by " + player.getName());
             forceCleanup();
-            player.closeInventory();
             return;
         }
         
@@ -183,16 +212,86 @@ public class KitEditorGUI implements Listener {
         
         // Handle slot selection (0-40: main inventory, armor, and offhand)
         if (slot <= 40) {
-            plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening category selector");
+            if (clickType == ClickType.RIGHT) {
+                // Right-click: open item modification menu if item exists
+                ItemStack currentItem = getCurrentItemInSlot(slot);
+                if (currentItem != null && !isPlaceholderItem(currentItem)) {
+                    plugin.getLogger().info("[DEBUG] Right-click on slot " + slot + " with item " + currentItem.getType());
+                    openItemModificationMenu(slot, currentItem);
+                    return;
+                }
+            }
             
-            // Temporarily deactivate this GUI
-            isActive = false;
+            // Left-click or right-click on empty slot: open appropriate selector
+            plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening selector");
             
-            // Open category selector for this slot
+            // Determine what type of selector to open based on slot
+            if (slot >= 36 && slot <= 39) {
+                // Armor slot - open armor-specific selector
+                openArmorSelector(slot);
+            } else {
+                // Regular slot - open category selector
+                openCategorySelector(slot);
+            }
+        }
+    }
+    
+    private void openCategorySelector(int slot) {
+        // Temporarily deactivate this GUI to prevent cursor jumping
+        isActive = false;
+        
+        // Use a longer delay and ensure the GUI is properly closed
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            player.closeInventory();
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 new CategorySelectorGUI(plugin, player, this, slot).open();
-            }, 1L);
+            }, 2L);
+        }, 1L);
+    }
+    
+    private void openArmorSelector(int slot) {
+        // Temporarily deactivate this GUI to prevent cursor jumping
+        isActive = false;
+        
+        // Use a longer delay and ensure the GUI is properly closed
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            player.closeInventory();
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new ArmorSelectorGUI(plugin, player, this, slot).open();
+            }, 2L);
+        }, 1L);
+    }
+    
+    private void openItemModificationMenu(int slot, ItemStack item) {
+        // Temporarily deactivate this GUI to prevent cursor jumping
+        isActive = false;
+        
+        // Use a longer delay and ensure the GUI is properly closed
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            player.closeInventory();
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                new ItemModificationGUI(plugin, player, this, slot, item).open();
+            }, 2L);
+        }, 1L);
+    }
+    
+    private ItemStack getCurrentItemInSlot(int slot) {
+        if (slot < 36) {
+            return kitContents[slot];
+        } else if (slot < 40) {
+            return kitArmor[slot - 36];
+        } else if (slot == 40) {
+            return offhandItem;
         }
+        return null;
+    }
+    
+    private boolean isPlaceholderItem(ItemStack item) {
+        if (item == null) return true;
+        Material type = item.getType();
+        return type == Material.PURPLE_STAINED_GLASS_PANE || 
+               type == Material.GREEN_STAINED_GLASS_PANE || 
+               type == Material.ORANGE_STAINED_GLASS_PANE;
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
@@ -200,16 +299,18 @@ public class KitEditorGUI implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
-        if (closer.equals(player) && event.getInventory().equals(gui)) {
+        if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
             plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
             
-            // Only cleanup if this is a final close (not a temporary one for navigation)
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (isActive && !player.getOpenInventory().getTopInventory().equals(gui)) {
-                    plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
-                    forceCleanup();
-                }
-            }, 3L);
+            // Only cleanup if this is a final close (not navigation)
+            if (isActive) {
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (isActive) {
+                        plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
+                        forceCleanup();
+                    }
+                }, 5L);
+            }
         }
     }
     
@@ -219,6 +320,7 @@ public class KitEditorGUI implements Listener {
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
     }
     
     public void setSlotItem(int slot, ItemStack item) {
@@ -226,14 +328,14 @@ public class KitEditorGUI implements Listener {
         
         if (slot < 36) {
             kitContents[slot] = item;
+            updateSlot(slot);
         } else if (slot < 40) {
             kitArmor[slot - 36] = item;
+            updateArmorSlot(slot - 36);
         } else if (slot == 40) {
             offhandItem = item;
+            updateOffhandSlot();
         }
-        
-        // Refresh the GUI
-        setupGUI();
     }
     
     public void clearSlot(int slot) {
@@ -245,12 +347,14 @@ public class KitEditorGUI implements Listener {
         plugin.getLogger().info("[DEBUG] Clearing all slots for " + player.getName());
         for (int i = 0; i < 36; i++) {
             kitContents[i] = null;
+            updateSlot(i);
         }
         for (int i = 0; i < 4; i++) {
             kitArmor[i] = null;
+            updateArmorSlot(i);
         }
         offhandItem = null;
-        setupGUI(); // Refresh the entire GUI
+        updateOffhandSlot();
         player.sendMessage(ChatColor.YELLOW + "All slots cleared!");
     }
     
@@ -267,11 +371,6 @@ public class KitEditorGUI implements Listener {
         
         player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' saved successfully!");
         forceCleanup();
-        player.closeInventory();
-    }
-    
-    public Inventory getGui() {
-        return gui;
     }
     
     public void refreshAndReopen() {
@@ -283,10 +382,10 @@ public class KitEditorGUI implements Listener {
         // Refresh the GUI content
         setupGUI();
         
-        // Reopen if not already open
-        if (!player.getOpenInventory().getTopInventory().equals(gui)) {
+        // Reopen the GUI
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             player.openInventory(gui);
-        }
+        }, 1L);
     }
     
     public boolean isActive() {

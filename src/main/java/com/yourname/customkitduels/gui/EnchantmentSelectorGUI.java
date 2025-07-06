@@ -27,7 +27,6 @@ public class EnchantmentSelectorGUI implements Listener {
     private final List<Enchantment> availableEnchantments;
     private static final Map<UUID, EnchantmentSelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
-    private boolean isNavigating = false;
     
     // Enchantment conflict groups
     private static final Set<Enchantment> PROTECTION_ENCHANTS = new HashSet<>(Arrays.asList(
@@ -290,7 +289,6 @@ public class EnchantmentSelectorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
-        isNavigating = false;
         player.openInventory(gui);
     }
     
@@ -299,7 +297,7 @@ public class EnchantmentSelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive || isNavigating) {
+        if (!clicker.getUniqueId().equals(player.getUniqueId()) || !event.getInventory().equals(gui) || !isActive) {
             return;
         }
         
@@ -381,11 +379,11 @@ public class EnchantmentSelectorGUI implements Listener {
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
-        isNavigating = true;
+        isActive = false;
         forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
-        }, 1L);
+        }, 2L);
     }
     
     private void forceCleanup() {
@@ -402,17 +400,17 @@ public class EnchantmentSelectorGUI implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
-        if (closer.equals(player) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] EnchantmentSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
+        if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
+            plugin.getLogger().info("[DEBUG] EnchantmentSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
             
-            if (!isNavigating) {
+            if (isActive) {
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (isActive && !isNavigating && activeGuis.containsKey(player.getUniqueId())) {
+                    if (isActive && activeGuis.containsKey(player.getUniqueId())) {
                         plugin.getLogger().info("[DEBUG] Final cleanup EnchantmentSelectorGUI for " + player.getName());
                         forceCleanup();
                         parentGUI.refreshAndReopen();
                     }
-                }, 3L);
+                }, 5L);
             }
         }
     }

@@ -57,17 +57,12 @@ public class RoundsSelectorGUI implements Listener {
         titleItem.setItemMeta(titleMeta);
         gui.setItem(4, titleItem);
         
-        // Round options (First to 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        // Round options (First to 1-10) using PAPER
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
-        Material[] materials = {
-            Material.IRON_SWORD, Material.IRON_AXE, Material.DIAMOND_SWORD, Material.DIAMOND_AXE,
-            Material.NETHERITE_SWORD, Material.NETHERITE_AXE, Material.GOLDEN_SWORD, Material.GOLDEN_AXE,
-            Material.EMERALD, Material.DIAMOND
-        };
         
         for (int i = 0; i < 10; i++) {
             int rounds = i + 1;
-            ItemStack roundItem = new ItemStack(materials[i]);
+            ItemStack roundItem = new ItemStack(Material.PAPER, rounds);
             ItemMeta roundMeta = roundItem.getItemMeta();
             roundMeta.setDisplayName(ChatColor.YELLOW + "First to " + rounds + " Round" + (rounds > 1 ? "s" : ""));
             roundMeta.setLore(Arrays.asList(

@@ -180,7 +180,12 @@ public class KitEditorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
+        if (!clicker.equals(player) || !isActive) {
+            return;
+        }
+        
+        // Only handle clicks in our GUI
+        if (!event.getInventory().equals(gui)) {
             return;
         }
         
@@ -225,7 +230,10 @@ public class KitEditorGUI implements Listener {
             // Left-click or right-click on empty slot: open category selector
             plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening category selector");
             
-            // Open category selector for this slot without deactivating
+            // Temporarily deactivate to prevent interference
+            isActive = false;
+            
+            // Open category selector for this slot
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 new CategorySelectorGUI(plugin, player, this, slot).open();
             }, 1L);
@@ -345,6 +353,9 @@ public class KitEditorGUI implements Listener {
         
         // Reactivate this GUI
         isActive = true;
+        
+        // Refresh the GUI content
+        setupGUI();
         
         // Reopen if not already open
         if (!player.getOpenInventory().getTopInventory().equals(gui)) {

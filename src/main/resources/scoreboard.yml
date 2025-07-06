@@ -1,19 +1,21 @@
-# Simple Scoreboard Configuration with Hex Color Support
-# Supports &#RRGGBB, <#RRGGBB>, and legacy &a format
+# Enhanced Scoreboard Configuration with Adventure API Support
+# Supports MiniMessage format, gradients, hex colors, and legacy colors
 
-title: "&#00FF98&lPakMC"
+# Title with gradient effect
+title: "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>"
 
+# Scoreboard lines with advanced formatting
 lines:
   - " "
-  - " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)"
-  - " &#C3F6E2| Duration: &#00FF98<duration>"
-  - " &#C3F6E2| Round: &#00FF98<current_round>"
+  - " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)"
+  - " <#C3F6E2>│ Duration: <#00FF98><duration>"
+  - " <#C3F6E2>│ Round: <#00FF98><current_round>"
   - " "
-  - " &#00FF98&lSCORE"
-  - " &#C3F6E2| &a<player_score> &7- &c<opponent_score>"
-  - " &#C3F6E2| &7<player_name> vs <opponent_name>"
+  - " <#00FF98><bold>SCORE</bold>"
+  - " <#C3F6E2>│ <green><player_score></green> <gray>-</gray> <red><opponent_score></red>"
+  - " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>"
   - " "
-  - "    &#C3F6E2pakmc.xyz"
+  - "    <#C3F6E2>pakmc.xyz"
 
 # Available placeholders:
 # <rounds> - Target rounds to win
@@ -24,11 +26,29 @@ lines:
 # <player_name> - Player's name (truncated to 8 chars)
 # <opponent_name> - Opponent's name (truncated to 8 chars)
 
-# Color formats supported:
-# Legacy: &a, &b, &c, etc.
-# Hex: &#RRGGBB or <#RRGGBB>
-# Examples:
-# &#FF0000 = Red
-# &#00FF00 = Green
-# &#0000FF = Blue
-# &#FFD700 = Gold
+# Advanced formatting options with Adventure API:
+# 
+# Hex Colors:
+# <#RRGGBB> or &#RRGGBB
+# Examples: <#FF0000> (red), <#00FF00> (green), <#0000FF> (blue)
+#
+# Named Colors:
+# <red>, <green>, <blue>, <yellow>, <aqua>, <white>, <black>, etc.
+#
+# Gradients:
+# <gradient:#start:#end>text</gradient>
+# Example: <gradient:#FF0000:#00FF00>Rainbow text</gradient>
+#
+# Rainbow:
+# <rainbow>text</rainbow>
+#
+# Text Formatting:
+# <bold>, <italic>, <underlined>, <strikethrough>, <obfuscated>
+#
+# Legacy Colors (still supported):
+# &a, &b, &c, &d, &e, &f, &0-9, &l, &m, &n, &o, &r
+#
+# Example advanced line:
+# " <gradient:#FF0000:#00FF00><bold>GRADIENT TITLE</bold></gradient>"
+# " <rainbow>Rainbow text with <bold>formatting</bold></rainbow>"
+# " <#FF6B6B>Custom hex color <italic>with style</italic>"

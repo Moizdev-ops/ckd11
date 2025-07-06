@@ -2,7 +2,6 @@ package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.utils.ColorUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -11,21 +10,23 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Simple and reliable health display manager
- * Uses custom names below player names - works on all servers
+ * Enhanced health display manager with Adventure API support
+ * Uses custom names below player names with proper hex colors
  */
 public class HealthDisplayManager {
     
     private final CustomKitDuels plugin;
     private final Map<UUID, BukkitRunnable> healthTasks;
     private final Map<UUID, String> originalNames; // Store original custom names
+    private final Map<UUID, Boolean> originalNameVisibility; // Store original visibility
     
     public HealthDisplayManager(CustomKitDuels plugin) {
         this.plugin = plugin;
         this.healthTasks = new HashMap<>();
         this.originalNames = new HashMap<>();
+        this.originalNameVisibility = new HashMap<>();
         
-        plugin.getLogger().info("HealthDisplayManager initialized - using custom names for health display");
+        plugin.getLogger().info("HealthDisplayManager initialized with Adventure API support");
     }
     
     /**
@@ -34,8 +35,9 @@ public class HealthDisplayManager {
     public void startHealthDisplay(Player player) {
         stopHealthDisplay(player); // Stop any existing display
         
-        // Store original custom name
+        // Store original custom name and visibility
         originalNames.put(player.getUniqueId(), player.getCustomName());
+        originalNameVisibility.put(player.getUniqueId(), player.isCustomNameVisible());
         
         BukkitRunnable healthTask = new BukkitRunnable() {
             @Override
@@ -65,35 +67,31 @@ public class HealthDisplayManager {
             task.cancel();
         }
         
-        // Restore original custom name
+        // Restore original custom name and visibility
         String originalName = originalNames.remove(player.getUniqueId());
+        Boolean originalVisibility = originalNameVisibility.remove(player.getUniqueId());
+        
         player.setCustomName(originalName);
-        player.setCustomNameVisible(originalName != null);
+        player.setCustomNameVisible(originalVisibility != null ? originalVisibility : false);
         
         plugin.getLogger().info("Stopped health display for " + player.getName());
     }
     
     /**
-     * Update health display for a player
+     * Update health display for a player with Adventure API colors
      */
     private void updateHealthDisplay(Player player) {
         double health = player.getHealth();
         double maxHealth = player.getMaxHealth();
-        double hearts = health / 2.0; // Convert to hearts
-        double maxHearts = maxHealth / 2.0;
         
-        // Create health display with hearts
-        String healthText = String.format("%.1f/%.1f ❤", hearts, maxHearts);
+        // Create health display using Adventure API
+        String healthDisplayText = ColorUtils.createHealthDisplay(player.getName(), health, maxHealth);
         
-        // Add color based on health percentage
-        double healthPercentage = health / maxHealth;
-        ChatColor healthColor = ColorUtils.getHealthColor(healthPercentage);
+        // Translate to legacy format for custom name
+        String translatedText = ColorUtils.translateColors(healthDisplayText);
         
-        // Create display text: PlayerName <health> ❤
-        String displayText = ChatColor.WHITE + player.getName() + " " + healthColor + healthText;
-        
-        // Set custom name
-        player.setCustomName(displayText);
+        // Set custom name with health display
+        player.setCustomName(translatedText);
         player.setCustomNameVisible(true);
     }
     
@@ -114,15 +112,17 @@ public class HealthDisplayManager {
         }
         healthTasks.clear();
         
-        // Restore all original names
+        // Restore all original names and visibility
         for (Map.Entry<UUID, String> entry : originalNames.entrySet()) {
             Player player = plugin.getServer().getPlayer(entry.getKey());
             if (player != null && player.isOnline()) {
+                Boolean originalVisibility = originalNameVisibility.get(entry.getKey());
                 player.setCustomName(entry.getValue());
-                player.setCustomNameVisible(entry.getValue() != null);
+                player.setCustomNameVisible(originalVisibility != null ? originalVisibility : false);
             }
         }
         originalNames.clear();
+        originalNameVisibility.clear();
         
         plugin.getLogger().info("HealthDisplayManager cleaned up");
     }

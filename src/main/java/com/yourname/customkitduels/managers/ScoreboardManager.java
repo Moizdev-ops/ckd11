@@ -16,8 +16,8 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Simple but effective ScoreboardManager using native Bukkit scoreboards
- * Supports hex colors and real-time updates without external dependencies
+ * Enhanced ScoreboardManager with Adventure API support for hex colors
+ * Uses native Bukkit scoreboards with proper color translation
  */
 public class ScoreboardManager {
     
@@ -34,7 +34,7 @@ public class ScoreboardManager {
         this.updateTasks = new HashMap<>();
         
         loadScoreboardConfig();
-        plugin.getLogger().info("ScoreboardManager initialized with native Bukkit scoreboards and hex color support");
+        plugin.getLogger().info("ScoreboardManager initialized with Adventure API hex color support");
     }
     
     private void loadScoreboardConfig() {
@@ -48,24 +48,24 @@ public class ScoreboardManager {
     private void createDefaultScoreboardConfig() {
         scoreboardConfig = new YamlConfiguration();
         
-        // Using simple format with hex support
-        scoreboardConfig.set("title", "&#00FF98&lPakMC");
+        // Using MiniMessage format with gradients and hex colors
+        scoreboardConfig.set("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
         scoreboardConfig.set("lines", Arrays.asList(
             " ",
-            " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)",
-            " &#C3F6E2| Duration: &#00FF98<duration>",
-            " &#C3F6E2| Round: &#00FF98<current_round>",
+            " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)",
+            " <#C3F6E2>│ Duration: <#00FF98><duration>",
+            " <#C3F6E2>│ Round: <#00FF98><current_round>",
             " ",
-            " &#00FF98&lSCORE",
-            " &#C3F6E2| &a<player_score> &7- &c<opponent_score>",
-            " &#C3F6E2| &7<player_name> vs <opponent_name>",
+            " <#00FF98><bold>SCORE</bold>",
+            " <#C3F6E2>│ <green><player_score></green> <gray>-</gray> <red><opponent_score></red>",
+            " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>",
             " ",
-            "    &#C3F6E2pakmc.xyz"
+            "    <#C3F6E2>pakmc.xyz"
         ));
         
         try {
             scoreboardConfig.save(scoreboardFile);
-            plugin.getLogger().info("Created default scoreboard.yml with hex color support");
+            plugin.getLogger().info("Created default scoreboard.yml with MiniMessage format and hex colors");
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to create scoreboard.yml: " + e.getMessage());
         }
@@ -80,9 +80,9 @@ public class ScoreboardManager {
         if (bukkitManager == null) return;
         
         Scoreboard board = bukkitManager.getNewScoreboard();
-        String title = scoreboardConfig.getString("title", "&#00FF98&lPakMC");
+        String title = scoreboardConfig.getString("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
         
-        // Translate colors and truncate title if needed
+        // Translate colors using Adventure API
         String translatedTitle = ColorUtils.translateColors(title);
         if (translatedTitle.length() > 32) {
             translatedTitle = ColorUtils.truncateWithColors(translatedTitle, 32);
@@ -114,7 +114,7 @@ public class ScoreboardManager {
         // Initial update
         updateDuelScoreboard(player, roundsDuel);
         
-        plugin.getLogger().info("Showing duel scoreboard for " + player.getName());
+        plugin.getLogger().info("Showing enhanced duel scoreboard for " + player.getName());
     }
     
     public void updateDuelScoreboard(Player player, RoundsDuel roundsDuel) {
@@ -136,6 +136,8 @@ public class ScoreboardManager {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             String processedLine = replacePlaceholders(line, player, opponent, roundsDuel);
+            
+            // Translate colors using Adventure API
             processedLine = ColorUtils.translateColors(processedLine);
             
             // Ensure line is unique and not too long
@@ -218,7 +220,7 @@ public class ScoreboardManager {
     
     public void reloadConfig() {
         loadScoreboardConfig();
-        plugin.getLogger().info("Scoreboard configuration reloaded");
+        plugin.getLogger().info("Scoreboard configuration reloaded with Adventure API support");
     }
     
     /**

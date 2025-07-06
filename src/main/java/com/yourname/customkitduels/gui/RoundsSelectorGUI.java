@@ -57,14 +57,14 @@ public class RoundsSelectorGUI implements Listener {
         titleItem.setItemMeta(titleMeta);
         gui.setItem(4, titleItem);
         
-        // Round options (First to 1-10) using PAPER
-        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
+        // Round options (First to 1-10) in middle row (slots 10-19)
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
         
         for (int i = 0; i < 10; i++) {
             int rounds = i + 1;
-            ItemStack roundItem = new ItemStack(Material.PAPER, rounds);
+            ItemStack roundItem = new ItemStack(Material.PAPER);
             ItemMeta roundMeta = roundItem.getItemMeta();
-            roundMeta.setDisplayName(ChatColor.YELLOW + "First to " + rounds + " Round" + (rounds > 1 ? "s" : ""));
+            roundMeta.setDisplayName(ChatColor.YELLOW + "First to " + rounds);
             roundMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "First player to win " + rounds + " round" + (rounds > 1 ? "s" : "") + " wins the duel",
                 ChatColor.GREEN + "Click to select"
@@ -117,8 +117,8 @@ public class RoundsSelectorGUI implements Listener {
             return;
         }
         
-        // Handle round selection
-        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
+        // Handle round selection (slots 10-19)
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
         for (int i = 0; i < slots.length; i++) {
             if (slot == slots[i]) {
                 int targetRounds = i + 1;

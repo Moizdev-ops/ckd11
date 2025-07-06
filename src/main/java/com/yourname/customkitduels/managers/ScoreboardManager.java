@@ -42,30 +42,22 @@ public class ScoreboardManager {
     private void createDefaultScoreboardConfig() {
         scoreboardConfig = new YamlConfiguration();
         
-        scoreboardConfig.set("title", "&#FF6B6B&l⚔ &#FFE66D&lDUEL &#FF6B6B&l⚔");
+        scoreboardConfig.set("title", "&#00FF98&lPakMC");
         scoreboardConfig.set("lines", Arrays.asList(
             " ",
-            "&#4ECDC4&l┌─── MATCH INFO ───┐",
-            "&#95E1D3│ &#FFE66DMode: &#FF6B6BFirst to <rounds>",
-            "&#95E1D3│ &#FFE66DRound: &#4ECDC4<current_round>&#95E1D3/&#4ECDC4<rounds>",
-            "&#95E1D3│ &#FFE66DTime: &#4ECDC4<duration>",
-            "&#4ECDC4&l└─────────────────┘",
+            " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)",
+            " &#C3F6E2| Duration: &#00FF98<duration>",
+            " &#C3F6E2| Round: &#00FF98<current_round> ",
             " ",
-            "&#FF6B6B&l┌──── FIGHTERS ────┐",
-            "&#FFB3BA│ &#4ECDC4<player_name>: &#95E1D3<player_score> &#FF6B6B❤<player_health>",
-            "&#FFB3BA│ &#4ECDC4<opponent_name>: &#95E1D3<opponent_score> &#FF6B6B❤<opponent_health>",
-            "&#FF6B6B&l└─────────────────┘",
+            " &#00FF98&lSCORE",
+            " &#C3F6E2| &a<player_score> - &c<opponent_score>",
             " ",
-            "&#95E1D3&l┌──── STATUS ────┐",
-            "&#C7ECEE│ &#FFE66D<status_message>",
-            "&#95E1D3&l└───────────────┘",
-            " ",
-            "    &#4ECDC4&lpakmc.xyz"
+            "    &#C3F6E2pakmc.xyz"
         ));
         
         try {
             scoreboardConfig.save(scoreboardFile);
-            plugin.getLogger().info("Created enhanced scoreboard.yml configuration");
+            plugin.getLogger().info("Created default scoreboard.yml configuration");
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to create scoreboard.yml: " + e.getMessage());
         }
@@ -130,22 +122,6 @@ public class ScoreboardManager {
         int playerScore = player.equals(roundsDuel.getPlayer1()) ? roundsDuel.getPlayer1Wins() : roundsDuel.getPlayer2Wins();
         int opponentScore = player.equals(roundsDuel.getPlayer1()) ? roundsDuel.getPlayer2Wins() : roundsDuel.getPlayer1Wins();
         
-        // Get health information
-        String playerHealth = String.format("%.1f", player.getHealth() / 2.0); // Convert to hearts
-        String opponentHealth = String.format("%.1f", opponent.getHealth() / 2.0); // Convert to hearts
-        
-        // Determine status message
-        String statusMessage;
-        if (roundsDuel.getCurrentRound() == 1 && playerScore == 0 && opponentScore == 0) {
-            statusMessage = "Fight!";
-        } else if (playerScore > opponentScore) {
-            statusMessage = "You're winning!";
-        } else if (opponentScore > playerScore) {
-            statusMessage = "You're behind!";
-        } else {
-            statusMessage = "It's tied!";
-        }
-        
         return line
             .replace("<rounds>", String.valueOf(roundsDuel.getTargetRounds()))
             .replace("<duration>", duration)
@@ -153,10 +129,7 @@ public class ScoreboardManager {
             .replace("<player_score>", String.valueOf(playerScore))
             .replace("<opponent_score>", String.valueOf(opponentScore))
             .replace("<player_name>", truncateName(player.getName(), 8))
-            .replace("<opponent_name>", truncateName(opponent.getName(), 8))
-            .replace("<player_health>", playerHealth)
-            .replace("<opponent_health>", opponentHealth)
-            .replace("<status_message>", statusMessage);
+            .replace("<opponent_name>", truncateName(opponent.getName(), 8));
     }
     
     private String truncateName(String name, int maxLength) {

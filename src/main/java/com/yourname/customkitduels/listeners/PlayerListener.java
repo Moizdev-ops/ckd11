@@ -43,8 +43,25 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         
         if (plugin.getDuelManager().isInAnyDuel(player)) {
+            // Get opponent before ending duel
+            Player opponent = null;
+            RoundsDuel roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
+            if (roundsDuel != null) {
+                opponent = roundsDuel.getOpponent(player);
+            } else {
+                Duel duel = plugin.getDuelManager().getDuel(player);
+                if (duel != null) {
+                    opponent = duel.getOpponent(player);
+                }
+            }
+            
             // End the duel when player quits
             plugin.getDuelManager().endDuel(player, true);
+            
+            // Notify opponent
+            if (opponent != null && opponent.isOnline()) {
+                opponent.sendMessage(ChatColor.RED + player.getName() + " disconnected! You win the duel!");
+            }
         }
     }
     

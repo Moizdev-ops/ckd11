@@ -7,7 +7,7 @@ import com.yourname.customkitduels.gui.ArenaEditorGUI;
 import com.yourname.customkitduels.gui.ArenaListGUI;
 import com.yourname.customkitduels.gui.CategoryEditorGUI;
 import com.yourname.customkitduels.gui.KitEditorGUI;
-import com.yourname.customkitduels.gui.RoundsSelectorGUI;
+import com.yourname.customkitduels.gui.KitSelectorGUI;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -70,7 +70,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/ckd editkit <name> - Edit an existing kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd deletekit <name> - Delete a kit");
         sender.sendMessage(ChatColor.YELLOW + "/ckd listkits - List your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> <kit> - Challenge a player");
+        sender.sendMessage(ChatColor.YELLOW + "/ckd duel <player> - Challenge a player (opens kit selector)");
         sender.sendMessage(ChatColor.YELLOW + "/ckd accept - Accept a duel request");
         sender.sendMessage(ChatColor.YELLOW + "/ckd editcategory <category> - Edit item category");
         if (sender.hasPermission("customkitduels.admin")) {
@@ -205,14 +205,13 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /ckd duel <player> <kit>");
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /ckd duel <player>");
             return true;
         }
         
         Player player = (Player) sender;
         String targetName = args[1];
-        String kitName = args[2];
         
         Player target = plugin.getServer().getPlayer(targetName);
         if (target == null) {
@@ -225,14 +224,15 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        Kit kit = plugin.getKitManager().getKit(player.getUniqueId(), kitName);
-        if (kit == null) {
-            sender.sendMessage(ChatColor.RED + "You don't have a kit with that name.");
+        // Check if player has any kits
+        List<Kit> kits = plugin.getKitManager().getPlayerKits(player.getUniqueId());
+        if (kits.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "You don't have any kits! Create one with /ckd createkit <name>");
             return true;
         }
         
-        // Open rounds selector GUI instead of sending duel request directly
-        new RoundsSelectorGUI(plugin, player, target, kit).open();
+        // Open kit selector GUI
+        new KitSelectorGUI(plugin, player, target).open();
         return true;
     }
     
@@ -458,16 +458,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                         .collect(Collectors.toList());
             }
         } else if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("duel")) {
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    List<Kit> kits = plugin.getKitManager().getPlayerKits(player.getUniqueId());
-                    return kits.stream()
-                            .map(Kit::getName)
-                            .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
-                            .collect(Collectors.toList());
-                }
-            } else if (args[0].equalsIgnoreCase("arena") && 
+            if (args[0].equalsIgnoreCase("arena") && 
                       (args[1].equalsIgnoreCase("editor") || args[1].equalsIgnoreCase("delete"))) {
                 return plugin.getArenaManager().getAllArenas().stream()
                         .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))

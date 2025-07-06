@@ -18,6 +18,7 @@ public class KitManager {
     private final Map<UUID, List<Kit>> playerKits;
     private final Map<String, Double> kitHearts; // UUID_kitName -> hearts
     private final Map<String, Boolean> kitNaturalRegen; // UUID_kitName -> naturalRegen
+    private final Map<String, Boolean> kitHealthIndicators; // UUID_kitName -> healthIndicators
     
     public KitManager(CustomKitDuels plugin) {
         this.plugin = plugin;
@@ -26,6 +27,7 @@ public class KitManager {
         this.playerKits = new HashMap<>();
         this.kitHearts = new HashMap<>();
         this.kitNaturalRegen = new HashMap<>();
+        this.kitHealthIndicators = new HashMap<>();
         
         if (!kitsFolder.exists()) {
             kitsFolder.mkdirs();
@@ -74,8 +76,9 @@ public class KitManager {
         
         for (String kitName : config.getKeys(false)) {
             String key = playerId.toString() + "_" + kitName;
-            kitHearts.put(key, config.getDouble(kitName + ".hearts", 10.0)); // Changed default to 10
+            kitHearts.put(key, config.getDouble(kitName + ".hearts", 10.0));
             kitNaturalRegen.put(key, config.getBoolean(kitName + ".naturalRegen", true));
+            kitHealthIndicators.put(key, config.getBoolean(kitName + ".healthIndicators", true));
         }
     }
     
@@ -98,6 +101,14 @@ public class KitManager {
             if (entry.getKey().startsWith(playerIdStr + "_")) {
                 String kitName = entry.getKey().substring(playerIdStr.length() + 1);
                 config.set(kitName + ".naturalRegen", entry.getValue());
+                hasSettings = true;
+            }
+        }
+        
+        for (Map.Entry<String, Boolean> entry : kitHealthIndicators.entrySet()) {
+            if (entry.getKey().startsWith(playerIdStr + "_")) {
+                String kitName = entry.getKey().substring(playerIdStr.length() + 1);
+                config.set(kitName + ".healthIndicators", entry.getValue());
                 hasSettings = true;
             }
         }
@@ -229,6 +240,7 @@ public class KitManager {
             String key = playerId.toString() + "_" + kitName;
             kitHearts.remove(key);
             kitNaturalRegen.remove(key);
+            kitHealthIndicators.remove(key);
             savePlayerKitSettings(playerId);
         }
         
@@ -256,7 +268,7 @@ public class KitManager {
     // Kit Settings Methods
     public double getKitHearts(UUID playerId, String kitName) {
         String key = playerId.toString() + "_" + kitName;
-        return kitHearts.getOrDefault(key, 10.0); // Changed default to 10
+        return kitHearts.getOrDefault(key, 10.0);
     }
     
     public void setKitHearts(UUID playerId, String kitName, double hearts) {
@@ -273,6 +285,17 @@ public class KitManager {
     public void setKitNaturalRegen(UUID playerId, String kitName, boolean naturalRegen) {
         String key = playerId.toString() + "_" + kitName;
         kitNaturalRegen.put(key, naturalRegen);
+        savePlayerKitSettings(playerId);
+    }
+    
+    public boolean getKitHealthIndicators(UUID playerId, String kitName) {
+        String key = playerId.toString() + "_" + kitName;
+        return kitHealthIndicators.getOrDefault(key, true);
+    }
+    
+    public void setKitHealthIndicators(UUID playerId, String kitName, boolean healthIndicators) {
+        String key = playerId.toString() + "_" + kitName;
+        kitHealthIndicators.put(key, healthIndicators);
         savePlayerKitSettings(playerId);
     }
 }

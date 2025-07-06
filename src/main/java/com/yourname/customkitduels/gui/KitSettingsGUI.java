@@ -33,7 +33,7 @@ public class KitSettingsGUI implements Listener {
         this.player = player;
         this.parentGUI = parentGUI;
         this.kitName = kitName;
-        this.gui = Bukkit.createInventory(null, 27, ChatColor.DARK_PURPLE + "Kit Settings: " + kitName);
+        this.gui = Bukkit.createInventory(null, 36, ChatColor.DARK_PURPLE + "Kit Settings: " + kitName);
         
         plugin.getLogger().info("[DEBUG] Creating KitSettingsGUI for player " + player.getName() + " kit " + kitName);
         
@@ -47,6 +47,7 @@ public class KitSettingsGUI implements Listener {
         // Get current settings
         double currentHearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kitName);
         boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(player.getUniqueId(), kitName);
+        boolean healthIndicators = plugin.getKitManager().getKitHealthIndicators(player.getUniqueId(), kitName);
         
         // Kit Hearts setting
         ItemStack heartsItem = new ItemStack(Material.RED_DYE);
@@ -59,7 +60,7 @@ public class KitSettingsGUI implements Listener {
             ChatColor.GREEN + "Click to change"
         ));
         heartsItem.setItemMeta(heartsMeta);
-        gui.setItem(11, heartsItem);
+        gui.setItem(10, heartsItem);
         
         // Natural Health Regeneration setting
         ItemStack regenItem = new ItemStack(naturalRegen ? Material.GOLDEN_APPLE : Material.APPLE);
@@ -67,22 +68,51 @@ public class KitSettingsGUI implements Listener {
         regenMeta.setDisplayName(ChatColor.YELLOW + "🍖 Natural Health Regen");
         regenMeta.setLore(Arrays.asList(
             ChatColor.GRAY + "Status: " + (naturalRegen ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"),
-            ChatColor.GRAY + "Allow health regen from saturation",
+            ChatColor.GRAY + "Allow health regen from full hunger",
+            ChatColor.GRAY + "When disabled, only potions/food heal",
             ChatColor.GREEN + "Click to toggle"
         ));
         regenItem.setItemMeta(regenMeta);
-        gui.setItem(13, regenItem);
+        gui.setItem(12, regenItem);
+        
+        // Health Indicators setting
+        ItemStack indicatorsItem = new ItemStack(healthIndicators ? Material.REDSTONE : Material.GUNPOWDER);
+        ItemMeta indicatorsMeta = indicatorsItem.getItemMeta();
+        indicatorsMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "💖 Health Indicators");
+        indicatorsMeta.setLore(Arrays.asList(
+            ChatColor.GRAY + "Status: " + (healthIndicators ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"),
+            ChatColor.GRAY + "Show heart emojis and health bars",
+            ChatColor.GRAY + "Displays yours and opponent's health",
+            ChatColor.GREEN + "Click to toggle"
+        ));
+        indicatorsItem.setItemMeta(indicatorsMeta);
+        gui.setItem(14, indicatorsItem);
         
         // Reset to defaults button
         ItemStack resetItem = new ItemStack(Material.BARRIER);
         ItemMeta resetMeta = resetItem.getItemMeta();
         resetMeta.setDisplayName(ChatColor.YELLOW + "Reset to Defaults");
         resetMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "10 hearts, natural regen enabled",
+            ChatColor.GRAY + "10 hearts, natural regen enabled,",
+            ChatColor.GRAY + "health indicators enabled",
             ChatColor.GREEN + "Click to reset"
         ));
         resetItem.setItemMeta(resetMeta);
-        gui.setItem(15, resetItem);
+        gui.setItem(16, resetItem);
+        
+        // Info item
+        ItemStack infoItem = new ItemStack(Material.BOOK);
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        infoMeta.setDisplayName(ChatColor.GOLD + "Kit Settings Info");
+        infoMeta.setLore(Arrays.asList(
+            ChatColor.GRAY + "Configure how this kit behaves:",
+            ChatColor.YELLOW + "• Hearts: Max health for players",
+            ChatColor.YELLOW + "• Natural Regen: Auto-heal from hunger",
+            ChatColor.YELLOW + "• Health Indicators: Visual health display",
+            ChatColor.AQUA + "These settings only apply during duels"
+        ));
+        infoItem.setItemMeta(infoMeta);
+        gui.setItem(22, infoItem);
         
         // Back button
         ItemStack backItem = new ItemStack(Material.RED_STAINED_GLASS_PANE);
@@ -90,7 +120,7 @@ public class KitSettingsGUI implements Listener {
         backMeta.setDisplayName(ChatColor.RED + "Back");
         backMeta.setLore(Arrays.asList(ChatColor.GRAY + "Return to kit editor"));
         backItem.setItemMeta(backMeta);
-        gui.setItem(22, backItem);
+        gui.setItem(31, backItem);
     }
     
     public void open() {
@@ -122,16 +152,19 @@ public class KitSettingsGUI implements Listener {
         plugin.getLogger().info("[DEBUG] KitSettingsGUI click event - Player: " + player.getName() + ", Slot: " + slot);
         
         switch (slot) {
-            case 11: // Kit Hearts
+            case 10: // Kit Hearts
                 requestHearts();
                 break;
-            case 13: // Natural Regen
+            case 12: // Natural Regen
                 toggleNaturalRegen();
                 break;
-            case 15: // Reset to defaults
+            case 14: // Health Indicators
+                toggleHealthIndicators();
+                break;
+            case 16: // Reset to defaults
                 resetToDefaults();
                 break;
-            case 22: // Back
+            case 31: // Back
                 returnToParent();
                 break;
         }
@@ -198,9 +231,22 @@ public class KitSettingsGUI implements Listener {
         setupGUI(); // Refresh GUI
     }
     
+    private void toggleHealthIndicators() {
+        boolean currentIndicators = plugin.getKitManager().getKitHealthIndicators(player.getUniqueId(), kitName);
+        boolean newIndicators = !currentIndicators;
+        
+        plugin.getKitManager().setKitHealthIndicators(player.getUniqueId(), kitName, newIndicators);
+        
+        player.sendMessage(ChatColor.GREEN + "Health indicators " + 
+                          (newIndicators ? "enabled" : "disabled") + " for kit " + kitName + "!");
+        
+        setupGUI(); // Refresh GUI
+    }
+    
     private void resetToDefaults() {
-        plugin.getKitManager().setKitHearts(player.getUniqueId(), kitName, 10.0); // Changed default to 10
+        plugin.getKitManager().setKitHearts(player.getUniqueId(), kitName, 10.0);
         plugin.getKitManager().setKitNaturalRegen(player.getUniqueId(), kitName, true);
+        plugin.getKitManager().setKitHealthIndicators(player.getUniqueId(), kitName, true);
         
         player.sendMessage(ChatColor.GREEN + "Kit settings reset to defaults!");
         setupGUI(); // Refresh GUI

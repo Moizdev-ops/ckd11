@@ -4,8 +4,6 @@ import com.yourname.customkitduels.CustomKitDuels;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -16,8 +14,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class CategoryEditorGUI implements Listener {
@@ -35,73 +31,12 @@ public class CategoryEditorGUI implements Listener {
         this.player = player;
         this.categoryName = categoryName.toUpperCase();
         this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Editing: " + this.categoryName);
-        this.categoryItems = new ArrayList<>();
+        this.categoryItems = new ArrayList<>(plugin.getCategoryManager().getCategoryItems(this.categoryName));
         
         plugin.getLogger().info("[DEBUG] Creating CategoryEditorGUI for player " + player.getName() + " category " + this.categoryName);
         
-        loadCategoryItems();
         setupGUI();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-    }
-    
-    private void loadCategoryItems() {
-        File categoriesFile = new File(plugin.getDataFolder(), "categories.yml");
-        if (!categoriesFile.exists()) {
-            loadDefaultItems();
-            return;
-        }
-        
-        FileConfiguration config = YamlConfiguration.loadConfiguration(categoriesFile);
-        List<String> materialNames = config.getStringList(categoryName);
-        
-        if (materialNames.isEmpty()) {
-            loadDefaultItems();
-            return;
-        }
-        
-        for (String materialName : materialNames) {
-            try {
-                Material material = Material.valueOf(materialName);
-                categoryItems.add(new ItemStack(material));
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid material in category " + categoryName + ": " + materialName);
-            }
-        }
-    }
-    
-    private void loadDefaultItems() {
-        // Load default items based on category
-        switch (categoryName) {
-            case "WEAPONS":
-                categoryItems.addAll(createBasicItems(Arrays.asList(
-                    Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, 
-                    Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD,
-                    Material.BOW, Material.CROSSBOW, Material.TRIDENT
-                )));
-                break;
-            case "ARMOR":
-                categoryItems.addAll(createBasicItems(Arrays.asList(
-                    Material.LEATHER_HELMET, Material.IRON_HELMET, Material.DIAMOND_HELMET,
-                    Material.LEATHER_CHESTPLATE, Material.IRON_CHESTPLATE, Material.DIAMOND_CHESTPLATE,
-                    Material.SHIELD
-                )));
-                break;
-            case "FOOD":
-                categoryItems.addAll(createBasicItems(Arrays.asList(
-                    Material.APPLE, Material.GOLDEN_APPLE, Material.BREAD, Material.COOKED_BEEF,
-                    Material.COOKED_CHICKEN, Material.CAKE
-                )));
-                break;
-            // Add more defaults as needed
-        }
-    }
-    
-    private List<ItemStack> createBasicItems(List<Material> materials) {
-        List<ItemStack> items = new ArrayList<>();
-        for (Material material : materials) {
-            items.add(new ItemStack(material));
-        }
-        return items;
     }
     
     private void setupGUI() {
@@ -172,51 +107,47 @@ public class CategoryEditorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !isActive) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
             return;
         }
         
-        // Only handle clicks in our GUI
-        if (event.getInventory().equals(gui)) {
-            int slot = event.getSlot();
-            
-            plugin.getLogger().info("[DEBUG] CategoryEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
-            
-            // Handle control buttons
-            if (slot == 45) { // Reset to default
-                event.setCancelled(true);
-                resetToDefault();
-                return;
-            }
-            
-            if (slot == 46) { // Clear all
-                event.setCancelled(true);
-                clearAllItems();
-                return;
-            }
-            
-            if (slot == 49) { // Save
-                event.setCancelled(true);
-                saveCategory();
-                return;
-            }
-            
-            if (slot == 53) { // Cancel
-                event.setCancelled(true);
-                forceCleanup();
-                player.closeInventory();
-                return;
-            }
-            
-            // Allow normal inventory interaction for slots 0-44
-            if (slot < 45) {
-                // Don't cancel - allow placing/removing items
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    updateCategoryItems();
-                }, 1L);
-            } else {
-                event.setCancelled(true);
-            }
+        int slot = event.getSlot();
+        
+        plugin.getLogger().info("[DEBUG] CategoryEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot);
+        
+        // Handle control buttons
+        if (slot == 45) { // Reset to default
+            event.setCancelled(true);
+            resetToDefault();
+            return;
+        }
+        
+        if (slot == 46) { // Clear all
+            event.setCancelled(true);
+            clearAllItems();
+            return;
+        }
+        
+        if (slot == 49) { // Save
+            event.setCancelled(true);
+            saveCategory();
+            return;
+        }
+        
+        if (slot == 53) { // Cancel
+            event.setCancelled(true);
+            forceCleanup();
+            return;
+        }
+        
+        // Allow normal inventory interaction for slots 0-44
+        if (slot < 45) {
+            // Don't cancel - allow placing/removing items
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                updateCategoryItems();
+            }, 1L);
+        } else {
+            event.setCancelled(true);
         }
     }
     
@@ -243,8 +174,9 @@ public class CategoryEditorGUI implements Listener {
     }
     
     private void resetToDefault() {
+        // Clear current items and reload defaults
         categoryItems.clear();
-        loadDefaultItems();
+        categoryItems.addAll(plugin.getCategoryManager().getCategoryItems(categoryName));
         setupGUI();
         player.sendMessage(ChatColor.YELLOW + "Reset category " + categoryName + " to default items!");
     }
@@ -259,25 +191,11 @@ public class CategoryEditorGUI implements Listener {
         // Update items from GUI first
         updateCategoryItems();
         
-        File categoriesFile = new File(plugin.getDataFolder(), "categories.yml");
-        FileConfiguration config = YamlConfiguration.loadConfiguration(categoriesFile);
+        // Save to category manager
+        plugin.getCategoryManager().updateCategory(categoryName, categoryItems);
         
-        List<String> materialNames = new ArrayList<>();
-        for (ItemStack item : categoryItems) {
-            materialNames.add(item.getType().name());
-        }
-        
-        config.set(categoryName, materialNames);
-        
-        try {
-            config.save(categoriesFile);
-            player.sendMessage(ChatColor.GREEN + "Category " + categoryName + " saved with " + categoryItems.size() + " items!");
-            forceCleanup();
-            player.closeInventory();
-        } catch (IOException e) {
-            player.sendMessage(ChatColor.RED + "Failed to save category: " + e.getMessage());
-            plugin.getLogger().severe("Failed to save category " + categoryName + ": " + e.getMessage());
-        }
+        player.sendMessage(ChatColor.GREEN + "Category " + categoryName + " saved with " + categoryItems.size() + " items!");
+        forceCleanup();
     }
     
     private void forceCleanup() {

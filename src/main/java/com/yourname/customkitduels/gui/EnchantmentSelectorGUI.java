@@ -27,6 +27,7 @@ public class EnchantmentSelectorGUI implements Listener {
     private final List<Enchantment> availableEnchantments;
     private static final Map<UUID, EnchantmentSelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
+    private boolean isNavigating = false;
     
     // Enchantment conflict groups
     private static final Set<Enchantment> PROTECTION_ENCHANTS = new HashSet<>(Arrays.asList(
@@ -94,21 +95,7 @@ public class EnchantmentSelectorGUI implements Listener {
         }
         
         // Tool enchantments
-        if (materialName.contains("PICKAXE")) {
-            enchantments.addAll(Arrays.asList(
-                Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
-                Enchantment.UNBREAKING, Enchantment.MENDING
-            ));
-        }
-        
-        if (materialName.contains("SHOVEL")) {
-            enchantments.addAll(Arrays.asList(
-                Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
-                Enchantment.UNBREAKING, Enchantment.MENDING
-            ));
-        }
-        
-        if (materialName.contains("HOE")) {
+        if (materialName.contains("PICKAXE") || materialName.contains("SHOVEL") || materialName.contains("HOE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
                 Enchantment.UNBREAKING, Enchantment.MENDING
@@ -163,27 +150,15 @@ public class EnchantmentSelectorGUI implements Listener {
             }
         }
         
-        // Shield enchantments
-        if (material == Material.SHIELD) {
+        // Other enchantments
+        if (material == Material.SHIELD || material == Material.FISHING_ROD || 
+            material == Material.SHEARS || material == Material.FLINT_AND_STEEL ||
+            material == Material.ELYTRA) {
             enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
         }
         
-        // Fishing rod enchantments
         if (material == Material.FISHING_ROD) {
-            enchantments.addAll(Arrays.asList(
-                Enchantment.LUCK_OF_THE_SEA, Enchantment.LURE, Enchantment.UNBREAKING, Enchantment.MENDING
-            ));
-        }
-        
-        // Other tool enchantments
-        if (material == Material.SHEARS || material == Material.FLINT_AND_STEEL ||
-            material == Material.CARROT_ON_A_STICK || material == Material.WARPED_FUNGUS_ON_A_STICK) {
-            enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
-        }
-        
-        // Elytra enchantments
-        if (material == Material.ELYTRA) {
-            enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
+            enchantments.addAll(Arrays.asList(Enchantment.LUCK_OF_THE_SEA, Enchantment.LURE));
         }
         
         return enchantments;
@@ -315,6 +290,7 @@ public class EnchantmentSelectorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
+        isNavigating = false;
         player.openInventory(gui);
     }
     
@@ -323,7 +299,7 @@ public class EnchantmentSelectorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive || isNavigating) {
             return;
         }
         
@@ -405,6 +381,7 @@ public class EnchantmentSelectorGUI implements Listener {
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        isNavigating = true;
         forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
@@ -426,15 +403,17 @@ public class EnchantmentSelectorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] EnchantmentSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] EnchantmentSelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (isActive && activeGuis.containsKey(player.getUniqueId())) {
-                    plugin.getLogger().info("[DEBUG] Final cleanup EnchantmentSelectorGUI for " + player.getName());
-                    forceCleanup();
-                    parentGUI.refreshAndReopen();
-                }
-            }, 3L);
+            if (!isNavigating) {
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (isActive && !isNavigating && activeGuis.containsKey(player.getUniqueId())) {
+                        plugin.getLogger().info("[DEBUG] Final cleanup EnchantmentSelectorGUI for " + player.getName());
+                        forceCleanup();
+                        parentGUI.refreshAndReopen();
+                    }
+                }, 3L);
+            }
         }
     }
 }

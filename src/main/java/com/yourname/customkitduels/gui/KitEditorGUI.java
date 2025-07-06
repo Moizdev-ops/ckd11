@@ -32,6 +32,7 @@ public class KitEditorGUI implements Listener {
     private ItemStack offhandItem;
     private static final Map<UUID, KitEditorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
+    private boolean isNavigating = false;
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
         this.plugin = plugin;
@@ -172,6 +173,7 @@ public class KitEditorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
+        isNavigating = false;
         player.openInventory(gui);
     }
     
@@ -180,78 +182,84 @@ public class KitEditorGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        // Only handle our player and our GUI
-        if (!clicker.equals(player) || !isActive) {
+        // Only handle our specific player
+        if (!clicker.equals(player)) return;
+        
+        // Only handle clicks in our specific GUI
+        if (!event.getInventory().equals(gui)) return;
+        
+        // Only handle if we're active and not navigating
+        if (!isActive || isNavigating) return;
+        
+        event.setCancelled(true);
+        int slot = event.getSlot();
+        ClickType clickType = event.getClick();
+        
+        plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType);
+        
+        // Handle control buttons
+        if (slot == 45) { // Save button
+            plugin.getLogger().info("[DEBUG] Save button clicked by " + player.getName());
+            saveKit();
             return;
         }
         
-        // Only cancel events for our specific GUI
-        if (event.getInventory().equals(gui)) {
-            event.setCancelled(true);
-            
-            int slot = event.getSlot();
-            ClickType clickType = event.getClick();
-            
-            plugin.getLogger().info("[DEBUG] KitEditorGUI click event - Player: " + player.getName() + ", Slot: " + slot + ", ClickType: " + clickType + ", Active: " + isActive);
-            
-            // Handle control buttons
-            if (slot == 45) { // Save button
-                plugin.getLogger().info("[DEBUG] Save button clicked by " + player.getName());
-                saveKit();
-                return;
-            }
-            
-            if (slot == 53) { // Cancel button
-                plugin.getLogger().info("[DEBUG] Cancel button clicked by " + player.getName());
-                forceCleanup();
-                player.closeInventory();
-                return;
-            }
-            
-            if (slot == 49) { // Clear button
-                plugin.getLogger().info("[DEBUG] Clear button clicked by " + player.getName());
-                clearAllSlots();
-                return;
-            }
-            
-            // Handle slot selection (0-40: main inventory, armor, and offhand)
-            if (slot <= 40) {
-                if (clickType == ClickType.RIGHT) {
-                    // Right-click: open item modification menu if item exists
-                    ItemStack currentItem = getCurrentItemInSlot(slot);
-                    if (currentItem != null && !isPlaceholderItem(currentItem)) {
-                        plugin.getLogger().info("[DEBUG] Right-click on slot " + slot + " with item " + currentItem.getType());
-                        openItemModificationMenu(slot, currentItem);
-                        return;
-                    }
+        if (slot == 53) { // Cancel button
+            plugin.getLogger().info("[DEBUG] Cancel button clicked by " + player.getName());
+            forceCleanup();
+            return;
+        }
+        
+        if (slot == 49) { // Clear button
+            plugin.getLogger().info("[DEBUG] Clear button clicked by " + player.getName());
+            clearAllSlots();
+            return;
+        }
+        
+        // Handle slot selection (0-40: main inventory, armor, and offhand)
+        if (slot <= 40) {
+            if (clickType == ClickType.RIGHT) {
+                // Right-click: open item modification menu if item exists
+                ItemStack currentItem = getCurrentItemInSlot(slot);
+                if (currentItem != null && !isPlaceholderItem(currentItem)) {
+                    plugin.getLogger().info("[DEBUG] Right-click on slot " + slot + " with item " + currentItem.getType());
+                    openItemModificationMenu(slot, currentItem);
+                    return;
                 }
-                
-                // Left-click or right-click on empty slot: open appropriate selector
-                plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening selector");
-                
-                // Determine what type of selector to open based on slot
-                if (slot >= 36 && slot <= 39) {
-                    // Armor slot - open armor-specific selector
-                    openArmorSelector(slot);
-                } else {
-                    // Regular slot - open category selector
-                    openCategorySelector(slot);
-                }
+            }
+            
+            // Left-click or right-click on empty slot: open appropriate selector
+            plugin.getLogger().info("[DEBUG] Slot " + slot + " clicked by " + player.getName() + " - opening selector");
+            
+            // Determine what type of selector to open based on slot
+            if (slot >= 36 && slot <= 39) {
+                // Armor slot - open armor-specific selector
+                openArmorSelector(slot);
+            } else {
+                // Regular slot - open category selector
+                openCategorySelector(slot);
             }
         }
     }
     
     private void openCategorySelector(int slot) {
-        // Don't deactivate - just open the selector
+        isNavigating = true;
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new CategorySelectorGUI(plugin, player, this, slot).open();
         }, 1L);
     }
     
     private void openArmorSelector(int slot) {
-        // Open armor-specific selector based on slot
+        isNavigating = true;
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ArmorSelectorGUI(plugin, player, this, slot).open();
+        }, 1L);
+    }
+    
+    private void openItemModificationMenu(int slot, ItemStack item) {
+        isNavigating = true;
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new ItemModificationGUI(plugin, player, this, slot, item).open();
         }, 1L);
     }
     
@@ -274,38 +282,34 @@ public class KitEditorGUI implements Listener {
                type == Material.ORANGE_STAINED_GLASS_PANE;
     }
     
-    private void openItemModificationMenu(int slot, ItemStack item) {
-        plugin.getLogger().info("[DEBUG] Opening item modification menu for slot " + slot);
-        
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            new ItemModificationGUI(plugin, player, this, slot, item).open();
-        }, 1L);
-    }
-    
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
-            // Only cleanup if this is a final close (not a temporary one for navigation)
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (isActive && !player.getOpenInventory().getTopInventory().equals(gui)) {
-                    plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
-                    forceCleanup();
-                }
-            }, 3L);
+            // Only cleanup if this is a final close (not navigation)
+            if (!isNavigating) {
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (isActive && !isNavigating) {
+                        plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
+                        forceCleanup();
+                    }
+                }, 3L);
+            }
         }
     }
     
     private void forceCleanup() {
         plugin.getLogger().info("[DEBUG] Force cleanup for " + player.getName());
         isActive = false;
+        isNavigating = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
+        player.closeInventory();
     }
     
     public void setSlotItem(int slot, ItemStack item) {
@@ -356,18 +360,13 @@ public class KitEditorGUI implements Listener {
         
         player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' saved successfully!");
         forceCleanup();
-        player.closeInventory();
-    }
-    
-    public Inventory getGui() {
-        return gui;
     }
     
     public void refreshAndReopen() {
         plugin.getLogger().info("[DEBUG] Refreshing and reopening GUI for " + player.getName());
         
-        // Reactivate this GUI
-        isActive = true;
+        // Mark as no longer navigating
+        isNavigating = false;
         
         // Refresh the GUI content
         setupGUI();

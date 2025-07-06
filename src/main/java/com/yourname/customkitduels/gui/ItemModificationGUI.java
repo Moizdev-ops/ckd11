@@ -28,6 +28,7 @@ public class ItemModificationGUI implements Listener {
     private static final Map<UUID, ItemModificationGUI> activeGuis = new HashMap<>();
     private static final Set<UUID> waitingForStackSize = new HashSet<>();
     private boolean isActive = true;
+    private boolean isNavigating = false;
     
     public ItemModificationGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot, ItemStack targetItem) {
         this.plugin = plugin;
@@ -146,6 +147,7 @@ public class ItemModificationGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
+        isNavigating = false;
         player.openInventory(gui);
     }
     
@@ -154,47 +156,44 @@ public class ItemModificationGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player clicker = (Player) event.getWhoClicked();
         
-        if (!clicker.equals(player) || !isActive) {
+        if (!clicker.equals(player) || !event.getInventory().equals(gui) || !isActive || isNavigating) {
             return;
         }
         
-        // Only handle clicks in our GUI
-        if (event.getInventory().equals(gui)) {
-            event.setCancelled(true);
-            int slot = event.getSlot();
-            
-            plugin.getLogger().info("[DEBUG] ItemModificationGUI click event - Player: " + player.getName() + ", Slot: " + slot);
-            
-            switch (slot) {
-                case 10: // Stack size
-                    if (targetItem.getMaxStackSize() > 1) {
-                        requestStackSize();
-                    }
-                    break;
-                case 12: // Enchantments
-                    if (canBeEnchanted(targetItem.getType())) {
-                        openEnchantmentMenu();
-                    }
-                    break;
-                case 14: // Potion effects
-                    if (isPotionItem(targetItem.getType())) {
-                        openPotionMenu();
-                    }
-                    break;
-                case 16: // Remove item
-                    removeItem();
-                    break;
-                case 22: // Back
-                    returnToParent();
-                    break;
-            }
+        event.setCancelled(true);
+        int slot = event.getSlot();
+        
+        plugin.getLogger().info("[DEBUG] ItemModificationGUI click event - Player: " + player.getName() + ", Slot: " + slot);
+        
+        switch (slot) {
+            case 10: // Stack size
+                if (targetItem.getMaxStackSize() > 1) {
+                    requestStackSize();
+                }
+                break;
+            case 12: // Enchantments
+                if (canBeEnchanted(targetItem.getType())) {
+                    openEnchantmentMenu();
+                }
+                break;
+            case 14: // Potion effects
+                if (isPotionItem(targetItem.getType())) {
+                    openPotionMenu();
+                }
+                break;
+            case 16: // Remove item
+                removeItem();
+                break;
+            case 22: // Back
+                returnToParent();
+                break;
         }
     }
     
     private void requestStackSize() {
         plugin.getLogger().info("[DEBUG] Requesting stack size from " + player.getName());
         waitingForStackSize.add(player.getUniqueId());
-        isActive = false; // Temporarily deactivate
+        isNavigating = true;
         player.closeInventory();
         player.sendMessage(ChatColor.YELLOW + "Enter the new stack size (1-" + targetItem.getMaxStackSize() + ") in chat:");
     }
@@ -236,14 +235,14 @@ public class ItemModificationGUI implements Listener {
         
         // Reopen the modification GUI if there was an error
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            isActive = true;
+            isNavigating = false;
             player.openInventory(gui);
         });
     }
     
     private void openEnchantmentMenu() {
         plugin.getLogger().info("[DEBUG] Opening enchantment menu for " + player.getName());
-        isActive = false;
+        isNavigating = true;
         
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new EnchantmentSelectorGUI(plugin, player, this, targetItem).open();
@@ -252,7 +251,7 @@ public class ItemModificationGUI implements Listener {
     
     private void openPotionMenu() {
         plugin.getLogger().info("[DEBUG] Opening potion menu for " + player.getName());
-        isActive = false;
+        isNavigating = true;
         
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new PotionSelectorGUI(plugin, player, this, targetItem).open();
@@ -268,6 +267,7 @@ public class ItemModificationGUI implements Listener {
     
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
+        isNavigating = true;
         forceCleanup();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             parentGUI.refreshAndReopen();
@@ -282,7 +282,7 @@ public class ItemModificationGUI implements Listener {
     
     public void refreshAndReopen() {
         plugin.getLogger().info("[DEBUG] Refreshing and reopening ItemModificationGUI for " + player.getName());
-        isActive = true;
+        isNavigating = false;
         setupGUI();
         
         if (!player.getOpenInventory().getTopInventory().equals(gui)) {
@@ -307,15 +307,15 @@ public class ItemModificationGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.equals(player) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] ItemModificationGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] ItemModificationGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
-            // Don't cleanup if waiting for chat input
-            if (waitingForStackSize.contains(player.getUniqueId())) {
+            // Don't cleanup if waiting for chat input or navigating
+            if (waitingForStackSize.contains(player.getUniqueId()) || isNavigating) {
                 return;
             }
             
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (isActive && activeGuis.containsKey(player.getUniqueId())) {
+                if (isActive && !isNavigating && activeGuis.containsKey(player.getUniqueId())) {
                     plugin.getLogger().info("[DEBUG] Final cleanup ItemModificationGUI for " + player.getName());
                     forceCleanup();
                     parentGUI.refreshAndReopen();

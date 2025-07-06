@@ -2,6 +2,7 @@ package com.yourname.customkitduels;
 
 import com.yourname.customkitduels.commands.CommandHandler;
 import com.yourname.customkitduels.managers.ArenaManager;
+import com.yourname.customkitduels.managers.CategoryManager;
 import com.yourname.customkitduels.managers.DuelManager;
 import com.yourname.customkitduels.managers.KitManager;
 import com.yourname.customkitduels.listeners.PlayerListener;
@@ -13,6 +14,7 @@ public class CustomKitDuels extends JavaPlugin {
     private KitManager kitManager;
     private ArenaManager arenaManager;
     private DuelManager duelManager;
+    private CategoryManager categoryManager;
     
     @Override
     public void onEnable() {
@@ -22,6 +24,7 @@ public class CustomKitDuels extends JavaPlugin {
         saveDefaultConfig();
         
         // Initialize managers
+        categoryManager = new CategoryManager(this);
         kitManager = new KitManager(this);
         arenaManager = new ArenaManager(this);
         duelManager = new DuelManager(this);
@@ -63,9 +66,14 @@ public class CustomKitDuels extends JavaPlugin {
         return duelManager;
     }
     
+    public CategoryManager getCategoryManager() {
+        return categoryManager;
+    }
+    
     public void reloadPluginConfig() {
         reloadConfig();
         arenaManager.loadArenas();
+        categoryManager.reloadCategories();
         getLogger().info("Configuration reloaded!");
     }
 }

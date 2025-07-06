@@ -28,6 +28,7 @@ public class CategorySelectorGUI implements Listener {
     private final Inventory gui;
     private static final Map<UUID, CategorySelectorGUI> activeGuis = new HashMap<>();
     private boolean isActive = true;
+    private boolean isNavigating = false;
     
     public CategorySelectorGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot) {
         this.plugin = plugin;
@@ -136,6 +137,7 @@ public class CategorySelectorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
+        isNavigating = false;
         
         // Direct inventory switch without closing - prevents cursor jumping
         player.openInventory(gui);
@@ -149,7 +151,7 @@ public class CategorySelectorGUI implements Listener {
         // CRITICAL: Only handle events for our specific player and GUI
         if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
         if (!event.getInventory().equals(gui)) return;
-        if (!isActive) return;
+        if (!isActive || isNavigating) return;
         
         event.setCancelled(true);
         int slot = event.getSlot();
@@ -196,7 +198,8 @@ public class CategorySelectorGUI implements Listener {
     private void openItemSelector(String category) {
         plugin.getLogger().info("[DEBUG] Opening ItemSelector for category " + category + " for player " + player.getName());
         
-        // Deactivate this GUI immediately
+        // Set navigation state and deactivate this GUI
+        isNavigating = true;
         isActive = false;
         forceCleanup();
         
@@ -209,7 +212,8 @@ public class CategorySelectorGUI implements Listener {
     private void returnToParent() {
         plugin.getLogger().info("[DEBUG] Returning to parent GUI for player " + player.getName());
         
-        // Deactivate this GUI immediately
+        // Set navigation state and deactivate this GUI
+        isNavigating = true;
         isActive = false;
         forceCleanup();
         
@@ -222,6 +226,7 @@ public class CategorySelectorGUI implements Listener {
     private void forceCleanup() {
         plugin.getLogger().info("[DEBUG] Force cleanup CategorySelectorGUI for " + player.getName());
         isActive = false;
+        isNavigating = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
@@ -234,12 +239,12 @@ public class CategorySelectorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] CategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] CategorySelectorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
-            // Only cleanup if still active (not already handled by navigation)
-            if (isActive) {
+            // Only cleanup if still active and not navigating
+            if (isActive && !isNavigating) {
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (isActive && activeGuis.containsKey(player.getUniqueId())) {
+                    if (isActive && !isNavigating && activeGuis.containsKey(player.getUniqueId())) {
                         plugin.getLogger().info("[DEBUG] Final cleanup CategorySelectorGUI for " + player.getName());
                         forceCleanup();
                         parentGUI.refreshAndReopen();

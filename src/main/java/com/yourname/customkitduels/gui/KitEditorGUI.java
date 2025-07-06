@@ -34,6 +34,7 @@ public class KitEditorGUI implements Listener {
     private boolean isActive = true;
     private boolean isBulkMode = false;
     private ItemStack bulkItem = null;
+    private boolean isNavigating = false; // Add navigation state
     
     public KitEditorGUI(CustomKitDuels plugin, Player player, String kitName) {
         this.plugin = plugin;
@@ -191,6 +192,7 @@ public class KitEditorGUI implements Listener {
         
         activeGuis.put(player.getUniqueId(), this);
         isActive = true;
+        isNavigating = false;
         player.openInventory(gui);
     }
     
@@ -202,7 +204,7 @@ public class KitEditorGUI implements Listener {
         // CRITICAL: Only handle events for our specific player and GUI
         if (!clicker.getUniqueId().equals(player.getUniqueId())) return;
         if (!event.getInventory().equals(gui)) return;
-        if (!isActive) return;
+        if (!isActive || isNavigating) return;
         
         event.setCancelled(true);
         int slot = event.getSlot();
@@ -306,7 +308,9 @@ public class KitEditorGUI implements Listener {
     private void openCategorySelectorForBulk(int slot) {
         plugin.getLogger().info("[DEBUG] Opening category selector for bulk mode");
         
-        // Don't deactivate the GUI - we want to return to the same state
+        // Set navigation state to prevent cleanup
+        isNavigating = true;
+        
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new BulkCategorySelectorGUI(plugin, player, this, slot).open();
         }, 1L);
@@ -315,7 +319,9 @@ public class KitEditorGUI implements Listener {
     private void openCategorySelector(int slot) {
         plugin.getLogger().info("[DEBUG] Opening category selector for slot " + slot);
         
-        // Don't close inventory - use direct transition
+        // Set navigation state to prevent cleanup
+        isNavigating = true;
+        
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new CategorySelectorGUI(plugin, player, this, slot).open();
         }, 1L);
@@ -324,7 +330,9 @@ public class KitEditorGUI implements Listener {
     private void openArmorSelector(int slot) {
         plugin.getLogger().info("[DEBUG] Opening armor selector for slot " + slot);
         
-        // Don't close inventory - use direct transition
+        // Set navigation state to prevent cleanup
+        isNavigating = true;
+        
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ArmorSelectorGUI(plugin, player, this, slot).open();
         }, 1L);
@@ -333,7 +341,9 @@ public class KitEditorGUI implements Listener {
     private void openItemModificationMenu(int slot, ItemStack item) {
         plugin.getLogger().info("[DEBUG] Opening item modification menu for slot " + slot);
         
-        // Don't close inventory - use direct transition
+        // Set navigation state to prevent cleanup
+        isNavigating = true;
+        
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new ItemModificationGUI(plugin, player, this, slot, item).open();
         }, 1L);
@@ -364,12 +374,12 @@ public class KitEditorGUI implements Listener {
         Player closer = (Player) event.getPlayer();
         
         if (closer.getUniqueId().equals(player.getUniqueId()) && event.getInventory().equals(gui)) {
-            plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive);
+            plugin.getLogger().info("[DEBUG] KitEditorGUI inventory closed by " + player.getName() + ", Active: " + isActive + ", Navigating: " + isNavigating);
             
             // Only cleanup if this is a final close (not navigation)
-            if (isActive) {
+            if (isActive && !isNavigating) {
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (isActive) {
+                    if (isActive && !isNavigating) {
                         plugin.getLogger().info("[DEBUG] Final cleanup for " + player.getName());
                         forceCleanup();
                     }
@@ -383,6 +393,7 @@ public class KitEditorGUI implements Listener {
         isActive = false;
         isBulkMode = false;
         bulkItem = null;
+        isNavigating = false;
         activeGuis.remove(player.getUniqueId());
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
@@ -443,14 +454,16 @@ public class KitEditorGUI implements Listener {
     public void refreshAndReopen() {
         plugin.getLogger().info("[DEBUG] Refreshing and reopening GUI for " + player.getName());
         
-        // Reactivate this GUI
-        isActive = true;
+        // Reset navigation state
+        isNavigating = false;
         
         // Refresh the GUI content
         setupGUI();
         
-        // Don't close and reopen - just update the existing inventory
-        // This prevents cursor jumping
+        // If the player doesn't have this inventory open, open it
+        if (!player.getOpenInventory().getTopInventory().equals(gui)) {
+            player.openInventory(gui);
+        }
     }
     
     public void setBulkItem(ItemStack item) {

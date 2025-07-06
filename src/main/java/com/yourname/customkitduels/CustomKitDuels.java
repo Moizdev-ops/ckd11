@@ -42,9 +42,10 @@ public class CustomKitDuels extends JavaPlugin {
         
         getLogger().info("CustomKitDuels has been enabled!");
         getLogger().info("Features:");
-        getLogger().info("- Native Bukkit scoreboards with hex color support");
-        getLogger().info("- Simple health display using custom names");
-        getLogger().info("- No external dependencies required");
+        getLogger().info("- FastBoard scoreboards with Adventure API hex color support");
+        getLogger().info("- Enhanced action bar health indicators");
+        getLogger().info("- Proper health restoration system");
+        getLogger().info("- Player disconnection handling");
         getLogger().info("- Full compatibility with all server versions");
     }
     

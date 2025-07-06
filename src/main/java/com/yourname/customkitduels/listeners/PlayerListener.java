@@ -4,12 +4,14 @@ import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Duel;
 import com.yourname.customkitduels.data.RoundsDuel;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
@@ -22,26 +24,29 @@ public class PlayerListener implements Listener {
     }
     
     @EventHandler(priority = EventPriority.HIGH)
-    public void onPlayerDeath(PlayerDeathEvent event) {
-        Player player = event.getEntity();
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
         
-        if (plugin.getDuelManager().isInAnyDuel(player)) {
-            // Clear drops to prevent item loss
-            event.getDrops().clear();
-            event.setDroppedExp(0);
-            
-            // End the duel
-            plugin.getDuelManager().endDuel(player, true);
-            
-            // Cancel death message
-            event.setDeathMessage(null);
-        }
+        // Reset player health to default (10 hearts = 20 health points)
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            try {
+                player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(20.0);
+                player.setHealth(20.0);
+                plugin.getLogger().info("Reset health for joining player: " + player.getName());
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to reset health for joining player " + player.getName() + ": " + e.getMessage());
+            }
+        }, 20L); // Wait 1 second after join
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         
+        // Stop health display
+        plugin.getHealthDisplayManager().stopHealthDisplay(player);
+        
+        // Check if player is in a duel
         if (plugin.getDuelManager().isInAnyDuel(player)) {
             // Get opponent before ending duel
             Player opponent = null;
@@ -62,6 +67,27 @@ public class PlayerListener implements Listener {
             if (opponent != null && opponent.isOnline()) {
                 opponent.sendMessage(ChatColor.RED + player.getName() + " disconnected! You win the duel!");
             }
+            
+            plugin.getLogger().info("Player " + player.getName() + " quit during duel - duel ended");
+        }
+    }
+    
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        
+        if (plugin.getDuelManager().isInAnyDuel(player)) {
+            // Clear drops to prevent item loss
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            
+            // End the duel
+            plugin.getDuelManager().endDuel(player, true);
+            
+            // Cancel death message
+            event.setDeathMessage(null);
+            
+            plugin.getLogger().info("Player " + player.getName() + " died in duel - duel ended");
         }
     }
     

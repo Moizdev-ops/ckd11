@@ -3,28 +3,26 @@ package com.yourname.customkitduels.managers;
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.RoundsDuel;
 import com.yourname.customkitduels.utils.ColorUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import fr.mrmicky.fastboard.FastBoard;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
 /**
- * Enhanced ScoreboardManager with Adventure API support for hex colors
- * Uses native Bukkit scoreboards with proper color translation
+ * Enhanced ScoreboardManager using FastBoard with Adventure API support
+ * Provides high-performance scoreboards with proper hex color support
  */
 public class ScoreboardManager {
     
     private final CustomKitDuels plugin;
     private final File scoreboardFile;
     private FileConfiguration scoreboardConfig;
-    private final Map<UUID, Scoreboard> playerBoards;
+    private final Map<UUID, FastBoard> playerBoards;
     private final Map<UUID, BukkitRunnable> updateTasks;
     
     public ScoreboardManager(CustomKitDuels plugin) {
@@ -34,7 +32,7 @@ public class ScoreboardManager {
         this.updateTasks = new HashMap<>();
         
         loadScoreboardConfig();
-        plugin.getLogger().info("ScoreboardManager initialized with Adventure API hex color support");
+        plugin.getLogger().info("ScoreboardManager initialized with FastBoard and Adventure API support");
     }
     
     private void loadScoreboardConfig() {
@@ -75,24 +73,15 @@ public class ScoreboardManager {
         // Remove existing board if present
         removeDuelScoreboard(player);
         
-        // Create new scoreboard
-        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
-        if (bukkitManager == null) return;
-        
-        Scoreboard board = bukkitManager.getNewScoreboard();
+        // Get title and translate colors
         String title = scoreboardConfig.getString("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
-        
-        // Translate colors using Adventure API
         String translatedTitle = ColorUtils.translateColors(title);
-        if (translatedTitle.length() > 32) {
-            translatedTitle = ColorUtils.truncateWithColors(translatedTitle, 32);
-        }
         
-        Objective objective = board.registerNewObjective("duel", "dummy", translatedTitle);
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        // Create FastBoard
+        FastBoard board = new FastBoard(player);
+        board.updateTitle(translatedTitle);
         
         playerBoards.put(player.getUniqueId(), board);
-        player.setScoreboard(board);
         
         // Start update task for real-time updates
         BukkitRunnable updateTask = new BukkitRunnable() {
@@ -114,58 +103,32 @@ public class ScoreboardManager {
         // Initial update
         updateDuelScoreboard(player, roundsDuel);
         
-        plugin.getLogger().info("Showing enhanced duel scoreboard for " + player.getName());
+        plugin.getLogger().info("Showing FastBoard duel scoreboard for " + player.getName());
     }
     
     public void updateDuelScoreboard(Player player, RoundsDuel roundsDuel) {
-        Scoreboard board = playerBoards.get(player.getUniqueId());
+        FastBoard board = playerBoards.get(player.getUniqueId());
         if (board == null) return;
-        
-        Objective objective = board.getObjective("duel");
-        if (objective == null) return;
-        
-        // Clear existing scores
-        for (String entry : board.getEntries()) {
-            board.resetScores(entry);
-        }
         
         List<String> lines = scoreboardConfig.getStringList("lines");
         Player opponent = roundsDuel.getOpponent(player);
         
-        // Process lines in reverse order (Bukkit scoreboards are weird)
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
+        if (opponent == null) return;
+        
+        List<String> processedLines = new ArrayList<>();
+        
+        // Process each line
+        for (String line : lines) {
             String processedLine = replacePlaceholders(line, player, opponent, roundsDuel);
             
             // Translate colors using Adventure API
             processedLine = ColorUtils.translateColors(processedLine);
             
-            // Ensure line is unique and not too long
-            if (processedLine.length() > 40) {
-                processedLine = ColorUtils.truncateWithColors(processedLine, 40);
-            }
-            
-            // Make line unique by adding invisible characters if needed
-            String uniqueLine = makeLineUnique(processedLine, board);
-            
-            Score score = objective.getScore(uniqueLine);
-            score.setScore(lines.size() - i);
-        }
-    }
-    
-    /**
-     * Make scoreboard line unique by adding invisible characters
-     */
-    private String makeLineUnique(String line, Scoreboard board) {
-        String uniqueLine = line;
-        int attempts = 0;
-        
-        while (board.getEntries().contains(uniqueLine) && attempts < 10) {
-            uniqueLine = line + ChatColor.RESET.toString().repeat(attempts + 1);
-            attempts++;
+            processedLines.add(processedLine);
         }
         
-        return uniqueLine;
+        // Update FastBoard with processed lines
+        board.updateLines(processedLines);
     }
     
     public void removeDuelScoreboard(Player player) {
@@ -175,21 +138,16 @@ public class ScoreboardManager {
             updateTask.cancel();
         }
         
-        // Remove scoreboard
-        playerBoards.remove(player.getUniqueId());
-        
-        // Reset to main scoreboard
-        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
-        if (bukkitManager != null) {
-            player.setScoreboard(bukkitManager.getMainScoreboard());
+        // Remove FastBoard
+        FastBoard board = playerBoards.remove(player.getUniqueId());
+        if (board != null) {
+            board.delete();
         }
         
-        plugin.getLogger().info("Removed duel scoreboard for " + player.getName());
+        plugin.getLogger().info("Removed FastBoard duel scoreboard for " + player.getName());
     }
     
     private String replacePlaceholders(String line, Player player, Player opponent, RoundsDuel roundsDuel) {
-        if (opponent == null) return line;
-        
         // Calculate duration
         long durationMs = System.currentTimeMillis() - roundsDuel.getStartTime();
         long durationSeconds = durationMs / 1000;
@@ -220,7 +178,7 @@ public class ScoreboardManager {
     
     public void reloadConfig() {
         loadScoreboardConfig();
-        plugin.getLogger().info("Scoreboard configuration reloaded with Adventure API support");
+        plugin.getLogger().info("Scoreboard configuration reloaded with FastBoard and Adventure API support");
     }
     
     /**
@@ -233,19 +191,12 @@ public class ScoreboardManager {
         }
         updateTasks.clear();
         
-        // Reset all players to main scoreboard
-        org.bukkit.scoreboard.ScoreboardManager bukkitManager = Bukkit.getScoreboardManager();
-        if (bukkitManager != null) {
-            Scoreboard mainBoard = bukkitManager.getMainScoreboard();
-            for (UUID playerId : playerBoards.keySet()) {
-                Player player = Bukkit.getPlayer(playerId);
-                if (player != null && player.isOnline()) {
-                    player.setScoreboard(mainBoard);
-                }
-            }
+        // Delete all FastBoards
+        for (FastBoard board : playerBoards.values()) {
+            board.delete();
         }
-        
         playerBoards.clear();
+        
         plugin.getLogger().info("ScoreboardManager cleaned up");
     }
 }

@@ -3,6 +3,7 @@ package com.yourname.customkitduels.managers;
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.*;
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -661,14 +662,15 @@ public class DuelManager {
             player.removePotionEffect(effect.getType());
         }
         
-        // Reset health to 10 hearts (20 health points)
+        // FIXED: Reset health to exactly 10 hearts (20 health points)
         try {
-            player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).setBaseValue(20.0);
+            player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(20.0);
             player.setHealth(20.0);
+            plugin.getLogger().info("Restored health to 20 (10 hearts) for player " + player.getName());
         } catch (Exception e) {
             // Fallback if attribute access fails
             plugin.getLogger().warning("Failed to reset max health for player " + player.getName() + ": " + e.getMessage());
-            player.setHealth(player.getMaxHealth());
+            player.setHealth(Math.min(20.0, player.getMaxHealth()));
         }
         player.setFoodLevel(20);
         player.setSaturation(20);
@@ -711,8 +713,9 @@ public class DuelManager {
         // Set health based on kit settings (convert hearts to health points)
         double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points
         try {
-            player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).setBaseValue(maxHealth);
+            player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(maxHealth);
             player.setHealth(maxHealth);
+            plugin.getLogger().info("Set health to " + maxHealth + " (" + kitHearts + " hearts) for player " + player.getName() + " in duel");
         } catch (Exception e) {
             // Fallback if attribute access fails
             plugin.getLogger().warning("Failed to set max health for player " + player.getName() + ": " + e.getMessage());

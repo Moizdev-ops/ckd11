@@ -1,6 +1,7 @@
 package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
+import com.yourname.customkitduels.data.RoundsDuel;
 import com.yourname.customkitduels.utils.ColorUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -10,23 +11,19 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Enhanced health display manager with Adventure API support
- * Uses custom names below player names with proper hex colors
+ * Enhanced health display manager with better visual indicators
+ * Uses action bar messages for real-time health display
  */
 public class HealthDisplayManager {
     
     private final CustomKitDuels plugin;
     private final Map<UUID, BukkitRunnable> healthTasks;
-    private final Map<UUID, String> originalNames; // Store original custom names
-    private final Map<UUID, Boolean> originalNameVisibility; // Store original visibility
     
     public HealthDisplayManager(CustomKitDuels plugin) {
         this.plugin = plugin;
         this.healthTasks = new HashMap<>();
-        this.originalNames = new HashMap<>();
-        this.originalNameVisibility = new HashMap<>();
         
-        plugin.getLogger().info("HealthDisplayManager initialized with Adventure API support");
+        plugin.getLogger().info("HealthDisplayManager initialized with action bar support");
     }
     
     /**
@@ -35,14 +32,10 @@ public class HealthDisplayManager {
     public void startHealthDisplay(Player player) {
         stopHealthDisplay(player); // Stop any existing display
         
-        // Store original custom name and visibility
-        originalNames.put(player.getUniqueId(), player.getCustomName());
-        originalNameVisibility.put(player.getUniqueId(), player.isCustomNameVisible());
-        
         BukkitRunnable healthTask = new BukkitRunnable() {
             @Override
             public void run() {
-                if (!player.isOnline()) {
+                if (!player.isOnline() || !plugin.getDuelManager().isInAnyDuel(player)) {
                     this.cancel();
                     healthTasks.remove(player.getUniqueId());
                     return;
@@ -67,32 +60,113 @@ public class HealthDisplayManager {
             task.cancel();
         }
         
-        // Restore original custom name and visibility
-        String originalName = originalNames.remove(player.getUniqueId());
-        Boolean originalVisibility = originalNameVisibility.remove(player.getUniqueId());
-        
-        player.setCustomName(originalName);
-        player.setCustomNameVisible(originalVisibility != null ? originalVisibility : false);
+        // Clear action bar
+        try {
+            player.sendActionBar("");
+        } catch (Exception e) {
+            // Ignore if action bar is not supported
+        }
         
         plugin.getLogger().info("Stopped health display for " + player.getName());
     }
     
     /**
-     * Update health display for a player with Adventure API colors
+     * Update health display for a player using action bar
      */
     private void updateHealthDisplay(Player player) {
-        double health = player.getHealth();
-        double maxHealth = player.getMaxHealth();
+        // Get opponent
+        Player opponent = null;
+        RoundsDuel roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
+        if (roundsDuel != null) {
+            opponent = roundsDuel.getOpponent(player);
+        } else {
+            // Try regular duel
+            var duel = plugin.getDuelManager().getDuel(player);
+            if (duel != null) {
+                opponent = duel.getOpponent(player);
+            }
+        }
         
-        // Create health display using Adventure API
-        String healthDisplayText = ColorUtils.createHealthDisplay(player.getName(), health, maxHealth);
+        if (opponent == null || !opponent.isOnline()) {
+            return;
+        }
         
-        // Translate to legacy format for custom name
-        String translatedText = ColorUtils.translateColors(healthDisplayText);
+        // Create health display
+        String healthDisplay = createHealthDisplay(player, opponent);
         
-        // Set custom name with health display
-        player.setCustomName(translatedText);
-        player.setCustomNameVisible(true);
+        // Send as action bar
+        try {
+            player.sendActionBar(ColorUtils.translateColors(healthDisplay));
+        } catch (Exception e) {
+            // Fallback to chat message if action bar fails
+            player.sendMessage(ColorUtils.translateColors(healthDisplay));
+        }
+    }
+    
+    /**
+     * Create health display string for both players
+     */
+    private String createHealthDisplay(Player player, Player opponent) {
+        // Player health
+        double playerHealth = player.getHealth();
+        double playerMaxHealth = player.getMaxHealth();
+        double playerHearts = playerHealth / 2.0;
+        double playerMaxHearts = playerMaxHealth / 2.0;
+        double playerHealthPercentage = playerHealth / playerMaxHealth;
+        
+        // Opponent health
+        double opponentHealth = opponent.getHealth();
+        double opponentMaxHealth = opponent.getMaxHealth();
+        double opponentHearts = opponentHealth / 2.0;
+        double opponentMaxHearts = opponentMaxHealth / 2.0;
+        double opponentHealthPercentage = opponentHealth / opponentMaxHealth;
+        
+        // Create health bars
+        String playerHealthBar = createHealthBar(playerHealthPercentage);
+        String opponentHealthBar = createHealthBar(opponentHealthPercentage);
+        
+        // Get colors based on health
+        String playerColor = ColorUtils.getHealthColorHex(playerHealthPercentage);
+        String opponentColor = ColorUtils.getHealthColorHex(opponentHealthPercentage);
+        
+        // Format health text
+        String playerHealthText = String.format("%.1f/%.1f", playerHearts, playerMaxHearts);
+        String opponentHealthText = String.format("%.1f/%.1f", opponentHearts, opponentMaxHearts);
+        
+        // Create display
+        return String.format(
+            "<white>You: %s%s ❤ %s</white> <gray>|</gray> <white>%s: %s%s ❤ %s</white>",
+            playerColor, playerHealthText, playerHealthBar,
+            opponent.getName(), opponentColor, opponentHealthText, opponentHealthBar
+        );
+    }
+    
+    /**
+     * Create a visual health bar
+     */
+    private String createHealthBar(double healthPercentage) {
+        int totalBars = 10;
+        int filledBars = (int) Math.round(healthPercentage * totalBars);
+        
+        StringBuilder healthBar = new StringBuilder();
+        healthBar.append("<gray>[</gray>");
+        
+        for (int i = 0; i < totalBars; i++) {
+            if (i < filledBars) {
+                if (healthPercentage > 0.6) {
+                    healthBar.append("<green>|</green>");
+                } else if (healthPercentage > 0.3) {
+                    healthBar.append("<yellow>|</yellow>");
+                } else {
+                    healthBar.append("<red>|</red>");
+                }
+            } else {
+                healthBar.append("<dark_gray>|</dark_gray>");
+            }
+        }
+        
+        healthBar.append("<gray>]</gray>");
+        return healthBar.toString();
     }
     
     /**
@@ -112,17 +186,14 @@ public class HealthDisplayManager {
         }
         healthTasks.clear();
         
-        // Restore all original names and visibility
-        for (Map.Entry<UUID, String> entry : originalNames.entrySet()) {
-            Player player = plugin.getServer().getPlayer(entry.getKey());
-            if (player != null && player.isOnline()) {
-                Boolean originalVisibility = originalNameVisibility.get(entry.getKey());
-                player.setCustomName(entry.getValue());
-                player.setCustomNameVisible(originalVisibility != null ? originalVisibility : false);
+        // Clear action bars for all online players
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            try {
+                player.sendActionBar("");
+            } catch (Exception e) {
+                // Ignore if action bar is not supported
             }
         }
-        originalNames.clear();
-        originalNameVisibility.clear();
         
         plugin.getLogger().info("HealthDisplayManager cleaned up");
     }

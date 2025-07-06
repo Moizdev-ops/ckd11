@@ -20,7 +20,6 @@ public class DuelManager {
     private final Map<UUID, Location> savedLocations;
     private final Set<UUID> playersInCountdown;
     private final Map<UUID, BukkitRunnable> arenaBoundsCheckers;
-    private final Map<UUID, BukkitRunnable> healthDisplayTasks;
     
     public DuelManager(CustomKitDuels plugin) {
         this.plugin = plugin;
@@ -31,7 +30,6 @@ public class DuelManager {
         this.savedLocations = new HashMap<>();
         this.playersInCountdown = new HashSet<>();
         this.arenaBoundsCheckers = new HashMap<>();
-        this.healthDisplayTasks = new HashMap<>();
     }
     
     public void sendDuelRequest(Player challenger, Player target, Kit kit) {
@@ -333,8 +331,12 @@ public class DuelManager {
         startArenaBoundsChecking(target, arena);
         
         // Start health display if enabled
-        startHealthDisplay(challenger, kit);
-        startHealthDisplay(target, kit);
+        if (plugin.getKitManager().getKitHealthIndicators(challenger.getUniqueId(), kit.getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(challenger);
+        }
+        if (plugin.getKitManager().getKitHealthIndicators(target.getUniqueId(), kit.getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(target);
+        }
         
         // Send messages
         challenger.sendMessage(ChatColor.GREEN + "Duel started against " + target.getName() + "!");
@@ -364,8 +366,12 @@ public class DuelManager {
         startArenaBoundsChecking(target, arena);
         
         // Start health display if enabled
-        startHealthDisplay(challenger, kit);
-        startHealthDisplay(target, kit);
+        if (plugin.getKitManager().getKitHealthIndicators(challenger.getUniqueId(), kit.getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(challenger);
+        }
+        if (plugin.getKitManager().getKitHealthIndicators(target.getUniqueId(), kit.getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(target);
+        }
         
         // Show scoreboard
         plugin.getScoreboardManager().showDuelScoreboard(challenger, roundsDuel);
@@ -421,117 +427,6 @@ public class DuelManager {
         arenaBoundsCheckers.put(player.getUniqueId(), boundsChecker);
     }
     
-    private void startHealthDisplay(Player player, Kit kit) {
-        // Check if health indicators are enabled for this kit
-        if (!plugin.getKitManager().getKitHealthIndicators(player.getUniqueId(), kit.getName())) {
-            return;
-        }
-        
-        BukkitRunnable healthTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline() || !isInAnyDuel(player)) {
-                    this.cancel();
-                    healthDisplayTasks.remove(player.getUniqueId());
-                    return;
-                }
-                
-                // Get opponent
-                Player opponent = null;
-                RoundsDuel roundsDuel = activeRoundsDuels.get(player.getUniqueId());
-                if (roundsDuel != null) {
-                    opponent = roundsDuel.getOpponent(player);
-                } else {
-                    Duel duel = activeDuels.get(player.getUniqueId());
-                    if (duel != null) {
-                        opponent = duel.getOpponent(player);
-                    }
-                }
-                
-                if (opponent != null && opponent.isOnline()) {
-                    // Update health display below name tag
-                    updateHealthDisplay(player);
-                    updateHealthDisplay(opponent);
-                }
-            }
-        };
-        
-        healthTask.runTaskTimer(plugin, 0L, 10L); // Update every 0.5 seconds
-        healthDisplayTasks.put(player.getUniqueId(), healthTask);
-    }
-    
-    private void updateHealthDisplay(Player player) {
-        double health = player.getHealth();
-        double maxHealth = player.getMaxHealth();
-        double hearts = health / 2.0; // Convert to hearts
-        
-        // Create health display with single heart emoji and numeric value
-        String healthDisplay = String.format("%.1f ❤", hearts);
-        
-        // Set as custom name (below name tag)
-        player.setCustomName(ChatColor.WHITE + player.getName() + " " + ChatColor.RED + healthDisplay);
-        player.setCustomNameVisible(true);
-    }
-    
-    private void preparePlayer(Player player, Kit kit) {
-        // Clear player
-        player.getInventory().clear();
-        player.getInventory().setArmorContents(new ItemStack[4]);
-        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
-        
-        // Get kit settings
-        double kitHearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kit.getName());
-        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(player.getUniqueId(), kit.getName());
-        
-        // Set health based on kit settings (convert hearts to health points)
-        double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points
-        try {
-            player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).setBaseValue(maxHealth);
-            player.setHealth(maxHealth);
-        } catch (Exception e) {
-            // Fallback if attribute access fails
-            plugin.getLogger().warning("Failed to set max health for player " + player.getName() + ": " + e.getMessage());
-            player.setHealth(Math.min(maxHealth, player.getMaxHealth()));
-        }
-        
-        // Set hunger
-        player.setFoodLevel(20);
-        player.setSaturation(20);
-        
-        // Handle natural health regeneration setting
-        if (!naturalRegen) {
-            // Disable natural regeneration by setting the gamerule for this player's world
-            World world = player.getWorld();
-            world.setGameRule(GameRule.NATURAL_REGENERATION, false);
-            plugin.getLogger().info("Disabled natural regeneration for world " + world.getName() + " during duel");
-        }
-        
-        // Set gamemode
-        player.setGameMode(GameMode.SURVIVAL);
-        
-        // Give kit - handle main inventory (36 slots)
-        ItemStack[] contents = kit.getContents();
-        if (contents != null) {
-            // Set main inventory (slots 0-35)
-            ItemStack[] mainInventory = new ItemStack[36];
-            System.arraycopy(contents, 0, mainInventory, 0, Math.min(contents.length, 36));
-            player.getInventory().setContents(mainInventory);
-            
-            // Set offhand (slot 36 in our extended array)
-            if (contents.length > 36 && contents[36] != null) {
-                player.getInventory().setItemInOffHand(contents[36]);
-            }
-        }
-        
-        // Give armor
-        if (kit.getArmor() != null) {
-            player.getInventory().setArmorContents(kit.getArmor().clone());
-        }
-        
-        // Update inventory
-        player.updateInventory();
-    }
-    
     public void endDuel(Player player, boolean died) {
         // Stop arena bounds checking
         BukkitRunnable boundsChecker = arenaBoundsCheckers.remove(player.getUniqueId());
@@ -540,10 +435,7 @@ public class DuelManager {
         }
         
         // Stop health display
-        BukkitRunnable healthTask = healthDisplayTasks.remove(player.getUniqueId());
-        if (healthTask != null) {
-            healthTask.cancel();
-        }
+        plugin.getHealthDisplayManager().stopHealthDisplay(player);
         
         // Check if it's a rounds duel first
         RoundsDuel roundsDuel = activeRoundsDuels.get(player.getUniqueId());
@@ -564,10 +456,7 @@ public class DuelManager {
             if (opponentBoundsChecker != null) {
                 opponentBoundsChecker.cancel();
             }
-            BukkitRunnable opponentHealthTask = healthDisplayTasks.remove(opponent.getUniqueId());
-            if (opponentHealthTask != null) {
-                opponentHealthTask.cancel();
-            }
+            plugin.getHealthDisplayManager().stopHealthDisplay(opponent);
         }
         
         // Determine winner
@@ -640,10 +529,8 @@ public class DuelManager {
             BukkitRunnable boundsChecker2 = arenaBoundsCheckers.remove(roundsDuel.getPlayer2().getUniqueId());
             if (boundsChecker2 != null) boundsChecker2.cancel();
             
-            BukkitRunnable healthTask1 = healthDisplayTasks.remove(roundsDuel.getPlayer1().getUniqueId());
-            if (healthTask1 != null) healthTask1.cancel();
-            BukkitRunnable healthTask2 = healthDisplayTasks.remove(roundsDuel.getPlayer2().getUniqueId());
-            if (healthTask2 != null) healthTask2.cancel();
+            plugin.getHealthDisplayManager().stopHealthDisplay(roundsDuel.getPlayer1());
+            plugin.getHealthDisplayManager().stopHealthDisplay(roundsDuel.getPlayer2());
             
             // Remove scoreboards
             plugin.getScoreboardManager().removeDuelScoreboard(roundsDuel.getPlayer1());
@@ -704,9 +591,13 @@ public class DuelManager {
         preparePlayer(player1, roundsDuel.getKit());
         preparePlayer(player2, roundsDuel.getKit());
         
-        // Restart health display
-        startHealthDisplay(player1, roundsDuel.getKit());
-        startHealthDisplay(player2, roundsDuel.getKit());
+        // Restart health display if enabled
+        if (plugin.getKitManager().getKitHealthIndicators(player1.getUniqueId(), roundsDuel.getKit().getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(player1);
+        }
+        if (plugin.getKitManager().getKitHealthIndicators(player2.getUniqueId(), roundsDuel.getKit().getName())) {
+            plugin.getHealthDisplayManager().startHealthDisplay(player2);
+        }
         
         // Update scoreboards
         plugin.getScoreboardManager().updateDuelScoreboard(player1, roundsDuel);
@@ -758,14 +649,7 @@ public class DuelManager {
     
     private void restorePlayer(Player player) {
         // Stop health display
-        BukkitRunnable healthTask = healthDisplayTasks.remove(player.getUniqueId());
-        if (healthTask != null) {
-            healthTask.cancel();
-        }
-        
-        // Clear custom name
-        player.setCustomName(null);
-        player.setCustomNameVisible(false);
+        plugin.getHealthDisplayManager().stopHealthDisplay(player);
         
         // Clear inventory
         player.getInventory().clear();
@@ -811,6 +695,65 @@ public class DuelManager {
             }
         }
         
+        player.updateInventory();
+    }
+    
+    private void preparePlayer(Player player, Kit kit) {
+        // Clear player
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(new ItemStack[4]);
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
+        
+        // Get kit settings
+        double kitHearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kit.getName());
+        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(player.getUniqueId(), kit.getName());
+        
+        // Set health based on kit settings (convert hearts to health points)
+        double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points
+        try {
+            player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).setBaseValue(maxHealth);
+            player.setHealth(maxHealth);
+        } catch (Exception e) {
+            // Fallback if attribute access fails
+            plugin.getLogger().warning("Failed to set max health for player " + player.getName() + ": " + e.getMessage());
+            player.setHealth(Math.min(maxHealth, player.getMaxHealth()));
+        }
+        
+        // Set hunger
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        
+        // Handle natural health regeneration setting
+        if (!naturalRegen) {
+            // Disable natural regeneration by setting the gamerule for this player's world
+            World world = player.getWorld();
+            world.setGameRule(GameRule.NATURAL_REGENERATION, false);
+            plugin.getLogger().info("Disabled natural regeneration for world " + world.getName() + " during duel");
+        }
+        
+        // Set gamemode
+        player.setGameMode(GameMode.SURVIVAL);
+        
+        // Give kit - handle main inventory (36 slots)
+        ItemStack[] contents = kit.getContents();
+        if (contents != null) {
+            // Set main inventory (slots 0-35)
+            ItemStack[] mainInventory = new ItemStack[36];
+            System.arraycopy(contents, 0, mainInventory, 0, Math.min(contents.length, 36));
+            player.getInventory().setContents(mainInventory);
+            
+            // Set offhand (slot 36 in our extended array)
+            if (contents.length > 36 && contents[36] != null) {
+                player.getInventory().setItemInOffHand(contents[36]);
+            }
+        }
+        
+        // Give armor
+        if (kit.getArmor() != null) {
+            player.getInventory().setArmorContents(kit.getArmor().clone());
+        }
+        
+        // Update inventory
         player.updateInventory();
     }
     
@@ -861,12 +804,6 @@ public class DuelManager {
             checker.cancel();
         }
         arenaBoundsCheckers.clear();
-        
-        // Cancel all health display tasks
-        for (BukkitRunnable task : healthDisplayTasks.values()) {
-            task.cancel();
-        }
-        healthDisplayTasks.clear();
         
         // End all active duels
         for (UUID playerId : new ArrayList<>(activeDuels.keySet())) {

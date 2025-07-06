@@ -1,11 +1,33 @@
-title: "&#00FF98&lPakMC"
+# Enhanced Scoreboard Configuration with MiniMessage Support
+# Supports hex colors, gradients, and advanced formatting
+# Format: Use MiniMessage syntax for modern formatting
+
+title: "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>"
+
 lines:
   - " "
-  - " &#00FF98&lDUEL &7(&#C3F6E2FT<rounds>&7)"
-  - " &#C3F6E2| Duration: &#00FF98<duration>"
-  - " &#C3F6E2| Round: &#00FF98<current_round> "
+  - " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)"
+  - " <#C3F6E2>│ Duration: <#00FF98><duration>"
+  - " <#C3F6E2>│ Round: <#00FF98><current_round>"
   - " "
-  - " &#00FF98&lSCORE"
-  - " &#C3F6E2| &a<player_score> - &c<opponent_score>"
+  - " <#00FF98><bold>SCORE</bold>"
+  - " <#C3F6E2>│ <green><player_score></green> - <red><opponent_score></red>"
+  - " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>"
   - " "
-  - "    &#C3F6E2pakmc.xyz"
+  - "    <#C3F6E2>pakmc.xyz"
+
+# Available placeholders:
+# <rounds> - Target rounds to win
+# <duration> - Duel duration (MM:SS format)
+# <current_round> - Current round number
+# <player_score> - Player's round wins
+# <opponent_score> - Opponent's round wins
+# <player_name> - Player's name (truncated to 8 chars)
+# <opponent_name> - Opponent's name (truncated to 8 chars)
+
+# Color formats supported:
+# Legacy: &a, &b, &c, etc.
+# Hex: <#RRGGBB> or &#RRGGBB
+# Named: <red>, <green>, <blue>, etc.
+# Gradients: <gradient:#start:#end>text</gradient>
+# Rainbow: <rainbow>text</rainbow>

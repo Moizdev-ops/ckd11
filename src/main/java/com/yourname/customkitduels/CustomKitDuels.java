@@ -14,6 +14,7 @@ public class CustomKitDuels extends JavaPlugin {
     private CategoryManager categoryManager;
     private ScoreboardManager scoreboardManager;
     private SpawnManager spawnManager;
+    private HealthDisplayManager healthDisplayManager;
     
     @Override
     public void onEnable() {
@@ -26,9 +27,10 @@ public class CustomKitDuels extends JavaPlugin {
         categoryManager = new CategoryManager(this);
         kitManager = new KitManager(this);
         arenaManager = new ArenaManager(this);
-        duelManager = new DuelManager(this);
+        healthDisplayManager = new HealthDisplayManager(this);
         scoreboardManager = new ScoreboardManager(this);
         spawnManager = new SpawnManager(this);
+        duelManager = new DuelManager(this);
         
         // Register commands
         CommandHandler commandHandler = new CommandHandler(this);
@@ -38,14 +40,34 @@ public class CustomKitDuels extends JavaPlugin {
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         
-        getLogger().info("CustomKitDuels has been enabled!");
+        getLogger().info("CustomKitDuels has been enabled with enhanced scoreboard and health display support!");
+        getLogger().info("Libraries used:");
+        getLogger().info("- Adventure API: Modern text components and hex color support");
+        getLogger().info("- FastBoard: High-performance scoreboards");
+        getLogger().info("- MiniMessage: Advanced text formatting");
+        
+        // Check optional dependencies
+        if (getServer().getPluginManager().isPluginEnabled("HolographicDisplays")) {
+            getLogger().info("- HolographicDisplays: Enhanced floating health displays (detected)");
+        }
+        if (getServer().getPluginManager().isPluginEnabled("ProtocolLib")) {
+            getLogger().info("- ProtocolLib: Packet-based health displays (detected)");
+        }
     }
     
     @Override
     public void onDisable() {
-        // Clean up any ongoing duels
+        // Clean up all managers
         if (duelManager != null) {
             duelManager.cleanupAllDuels();
+        }
+        
+        if (scoreboardManager != null) {
+            scoreboardManager.cleanup();
+        }
+        
+        if (healthDisplayManager != null) {
+            healthDisplayManager.cleanup();
         }
         
         getLogger().info("CustomKitDuels has been disabled!");
@@ -77,6 +99,10 @@ public class CustomKitDuels extends JavaPlugin {
     
     public SpawnManager getSpawnManager() {
         return spawnManager;
+    }
+    
+    public HealthDisplayManager getHealthDisplayManager() {
+        return healthDisplayManager;
     }
     
     public void reloadPluginConfig() {

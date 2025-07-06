@@ -64,10 +64,10 @@ public class ScoreboardManager {
     }
     
     public void showDuelScoreboard(Player player, RoundsDuel roundsDuel) {
-        ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
-        if (scoreboardManager == null) return;
+        org.bukkit.scoreboard.ScoreboardManager bukkitScoreboardManager = Bukkit.getScoreboardManager();
+        if (bukkitScoreboardManager == null) return;
         
-        Scoreboard scoreboard = scoreboardManager.getNewScoreboard();
+        Scoreboard scoreboard = bukkitScoreboardManager.getNewScoreboard();
         Objective objective = scoreboard.registerNewObjective("duel", "dummy", translateHexColors(scoreboardConfig.getString("title", "Duel")));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         
@@ -102,9 +102,9 @@ public class ScoreboardManager {
         playerScoreboards.remove(player.getUniqueId());
         
         // Reset to default scoreboard
-        ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
-        if (scoreboardManager != null) {
-            player.setScoreboard(scoreboardManager.getMainScoreboard());
+        org.bukkit.scoreboard.ScoreboardManager bukkitScoreboardManager = Bukkit.getScoreboardManager();
+        if (bukkitScoreboardManager != null) {
+            player.setScoreboard(bukkitScoreboardManager.getMainScoreboard());
         }
     }
     

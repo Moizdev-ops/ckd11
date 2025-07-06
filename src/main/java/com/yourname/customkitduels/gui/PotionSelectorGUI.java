@@ -14,7 +14,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
 import java.util.*;
@@ -89,23 +88,14 @@ public class PotionSelectorGUI implements Listener {
             PotionMeta meta = (PotionMeta) potionItem.getItemMeta();
             
             if (meta != null) {
-                // Set the potion data
-                PotionData potionData = new PotionData(potionType, false, false);
-                meta.setBasePotionData(potionData);
+                // Set the potion type using the new API
+                meta.setBasePotionType(potionType);
                 
                 String potionName = formatPotionName(potionType.name());
                 meta.setDisplayName(ChatColor.LIGHT_PURPLE + potionName);
                 
                 List<String> lore = new ArrayList<>();
                 lore.add(ChatColor.GRAY + "Click to select this potion type");
-                
-                // Only show extended/upgraded options if available
-                if (potionType.isExtendable()) {
-                    lore.add(ChatColor.YELLOW + "Right-click for extended duration");
-                }
-                if (potionType.isUpgradeable()) {
-                    lore.add(ChatColor.YELLOW + "Shift-click for upgraded effect");
-                }
                 
                 meta.setLore(lore);
                 potionItem.setItemMeta(meta);
@@ -187,45 +177,22 @@ public class PotionSelectorGUI implements Listener {
             int potionIndex = slot - 9;
             if (potionIndex < availablePotions.size()) {
                 PotionType potionType = availablePotions.get(potionIndex);
-                handlePotionClick(potionType, event);
+                handlePotionClick(potionType);
             }
         }
     }
     
-    private void handlePotionClick(PotionType potionType, InventoryClickEvent event) {
+    private void handlePotionClick(PotionType potionType) {
         if (!(targetItem.getItemMeta() instanceof PotionMeta)) return;
         
         PotionMeta meta = (PotionMeta) targetItem.getItemMeta();
         
-        boolean extended = event.isRightClick();
-        boolean upgraded = event.isShiftClick();
-        
-        // Some potions can't be extended or upgraded
-        if (extended && !potionType.isExtendable()) {
-            extended = false;
-            player.sendMessage(ChatColor.RED + "This potion type cannot be extended!");
-        }
-        if (upgraded && !potionType.isUpgradeable()) {
-            upgraded = false;
-            player.sendMessage(ChatColor.RED + "This potion type cannot be upgraded!");
-        }
-        
-        // Can't have both extended and upgraded
-        if (extended && upgraded) {
-            upgraded = false;
-            player.sendMessage(ChatColor.YELLOW + "Cannot have both extended and upgraded - using extended version.");
-        }
-        
-        PotionData potionData = new PotionData(potionType, extended, upgraded);
-        meta.setBasePotionData(potionData);
+        // Set the potion type using the new API
+        meta.setBasePotionType(potionType);
         targetItem.setItemMeta(meta);
         
         String potionName = formatPotionName(potionType.name());
-        String modifiers = "";
-        if (extended) modifiers += " (Extended)";
-        if (upgraded) modifiers += " (Upgraded)";
-        
-        player.sendMessage(ChatColor.GREEN + "Selected " + potionName + modifiers + "!");
+        player.sendMessage(ChatColor.GREEN + "Selected " + potionName + "!");
         
         // Update the display item
         gui.setItem(4, targetItem.clone());

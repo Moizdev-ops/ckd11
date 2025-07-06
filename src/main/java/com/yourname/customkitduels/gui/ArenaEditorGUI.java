@@ -2,6 +2,8 @@ package com.yourname.customkitduels.gui;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Arena;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -248,7 +250,15 @@ public class ArenaEditorGUI implements Listener {
         
         player.sendMessage(ChatColor.YELLOW + "Setting " + typeName + " for arena " + arena.getName());
         player.sendMessage(ChatColor.AQUA + "Shift+Left-click in air to set the position");
-        player.sendActionBar(ChatColor.GOLD + "Shift+Left-click in air to set position");
+        
+        // Send action bar message using Spigot API
+        try {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GOLD + "Shift+Left-click in air to set position"));
+        } catch (Exception e) {
+            // Fallback if action bar fails
+            player.sendMessage(ChatColor.GOLD + "Shift+Left-click in air to set position");
+        }
+        
         player.sendMessage(ChatColor.GRAY + "Type 'cancel' in chat to cancel");
     }
     

@@ -47,7 +47,7 @@ public class PotionSelectorGUI implements Listener {
     private List<PotionType> getAvailablePotionTypes() {
         List<PotionType> potions = new ArrayList<>();
         
-        // Add common potion types
+        // Add common potion types using correct 1.21.4 enum names
         potions.addAll(Arrays.asList(
             PotionType.WATER,
             PotionType.MUNDANE,
@@ -55,15 +55,15 @@ public class PotionSelectorGUI implements Listener {
             PotionType.AWKWARD,
             PotionType.NIGHT_VISION,
             PotionType.INVISIBILITY,
-            PotionType.JUMP,
+            PotionType.LEAPING,           // Changed from JUMP
             PotionType.FIRE_RESISTANCE,
-            PotionType.SPEED,
+            PotionType.SWIFTNESS,         // Changed from SPEED
             PotionType.SLOWNESS,
             PotionType.WATER_BREATHING,
-            PotionType.INSTANT_HEAL,
-            PotionType.INSTANT_DAMAGE,
+            PotionType.HEALING,           // Changed from INSTANT_HEAL
+            PotionType.HARMING,           // Changed from INSTANT_DAMAGE
             PotionType.POISON,
-            PotionType.REGEN,
+            PotionType.REGENERATION,      // Changed from REGEN
             PotionType.STRENGTH,
             PotionType.WEAKNESS,
             PotionType.LUCK,
@@ -98,10 +98,16 @@ public class PotionSelectorGUI implements Listener {
                 
                 List<String> lore = new ArrayList<>();
                 lore.add(ChatColor.GRAY + "Click to select this potion type");
-                lore.add(ChatColor.YELLOW + "Extended: Right-click");
-                lore.add(ChatColor.YELLOW + "Upgraded: Shift-click");
-                meta.setLore(lore);
                 
+                // Only show extended/upgraded options if available
+                if (potionType.isExtendable()) {
+                    lore.add(ChatColor.YELLOW + "Right-click for extended duration");
+                }
+                if (potionType.isUpgradeable()) {
+                    lore.add(ChatColor.YELLOW + "Shift-click for upgraded effect");
+                }
+                
+                meta.setLore(lore);
                 potionItem.setItemMeta(meta);
             }
             
@@ -197,14 +203,17 @@ public class PotionSelectorGUI implements Listener {
         // Some potions can't be extended or upgraded
         if (extended && !potionType.isExtendable()) {
             extended = false;
+            player.sendMessage(ChatColor.RED + "This potion type cannot be extended!");
         }
         if (upgraded && !potionType.isUpgradeable()) {
             upgraded = false;
+            player.sendMessage(ChatColor.RED + "This potion type cannot be upgraded!");
         }
         
         // Can't have both extended and upgraded
         if (extended && upgraded) {
             upgraded = false;
+            player.sendMessage(ChatColor.YELLOW + "Cannot have both extended and upgraded - using extended version.");
         }
         
         PotionData potionData = new PotionData(potionType, extended, upgraded);

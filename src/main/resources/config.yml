@@ -1,0 +1,46 @@
+# CustomKitDuels Configuration
+# Version: 1.0.0
+
+# Plugin settings
+settings:
+  # Maximum number of kits per player
+  max-kits-per-player: 10
+  
+  # Duel request timeout (in seconds)
+  duel-request-timeout: 30
+  
+  # Prevent players from using certain commands during duels
+  blocked-commands:
+    - "tp"
+    - "teleport"
+    - "home"
+    - "spawn"
+    - "warp"
+    - "back"
+
+# Messages (you can customize these)
+messages:
+  prefix: "&6[CustomKitDuels] &r"
+  no-permission: "&cYou don't have permission to use this command."
+  player-only: "&cThis command can only be used by players."
+  reload-success: "&aConfiguration reloaded successfully."
+  kit-created: "&aKit '{kit}' created successfully."
+  kit-updated: "&aKit '{kit}' updated successfully."
+  kit-deleted: "&aKit '{kit}' deleted successfully."
+  kit-not-found: "&cKit '{kit}' not found."
+  max-kits-reached: "&cYou have reached the maximum number of kits ({max})."
+  duel-request-sent: "&aDuel request sent to {player} with kit '{kit}'."
+  duel-request-received: "&e{player} has challenged you to a duel with kit '{kit}'! Use /ckd accept to accept."
+  duel-request-expired: "&cDuel request expired."
+  duel-started: "&aDuel started between {player1} and {player2}!"
+  duel-ended: "&e{winner} won the duel against {loser}!"
+  no-duel-request: "&cYou don't have any pending duel requests."
+  already-in-duel: "&cYou are already in a duel."
+  target-in-duel: "&cThat player is already in a duel."
+  no-arenas: "&cNo arenas are available for dueling."
+  arena-created: "&aArena '{arena}' created successfully."
+  arena-not-found: "&cArena '{arena}' not found."
+  position-set: "&aPosition set for arena '{arena}'."
+  spawn-set: "&aSpawn point set for arena '{arena}'."
+  cannot-teleport-in-duel: "&cYou cannot teleport during a duel!"
+  cannot-use-command-in-duel: "&cYou cannot use that command during a duel!"

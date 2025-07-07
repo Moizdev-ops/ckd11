@@ -49,8 +49,8 @@ public class PlayerListener implements Listener {
         
         // Check if player is in a duel
         if (plugin.getDuelManager().isInAnyDuel(player)) {
-            // Get opponent before ending duel
-            Player opponent = null;
+            // Get opponent before ending duel - make variables final for lambda
+            final Player opponent;
             RoundsDuel roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
             if (roundsDuel != null) {
                 opponent = roundsDuel.getOpponent(player);
@@ -58,6 +58,8 @@ public class PlayerListener implements Listener {
                 Duel duel = plugin.getDuelManager().getDuel(player);
                 if (duel != null) {
                     opponent = duel.getOpponent(player);
+                } else {
+                    opponent = null;
                 }
             }
             

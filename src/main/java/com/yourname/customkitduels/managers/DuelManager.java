@@ -889,4 +889,8 @@ public class DuelManager {
     public Map<UUID, Duel> getActiveDuels() {
         return activeDuels;
     }
+    
+    public Map<UUID, Boolean> getPlayerNaturalRegenState() {
+        return playerNaturalRegenState;
+    }
 }

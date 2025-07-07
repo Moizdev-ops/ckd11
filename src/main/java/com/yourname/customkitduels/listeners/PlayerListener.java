@@ -5,6 +5,8 @@ import com.yourname.customkitduels.data.Duel;
 import com.yourname.customkitduels.data.RoundsDuel;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -12,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -40,6 +43,27 @@ public class PlayerListener implements Listener {
                 plugin.getLogger().warning("Failed to reset health for joining player " + player.getName() + ": " + e.getMessage());
             }
         }, 20L); // Wait 1 second after join
+    }
+    
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityRegainHealth(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        
+        Player player = (Player) event.getEntity();
+        
+        // Check if player is in duel and has natural regen disabled
+        if (plugin.getDuelManager().isInAnyDuel(player)) {
+            Map<UUID, Boolean> playerNaturalRegenState = plugin.getDuelManager().getPlayerNaturalRegenState();
+            Boolean hasNaturalRegen = playerNaturalRegenState.get(player.getUniqueId());
+            
+            // If natural regen is disabled for this player, cancel natural healing
+            if (hasNaturalRegen != null && !hasNaturalRegen) {
+                if (event.getRegainReason() == EntityRegainHealthEvent.RegainReason.SATIATED) {
+                    event.setCancelled(true);
+                    plugin.getLogger().info("Cancelled natural health regen for " + player.getName() + " (kit setting)");
+                }
+            }
+        }
     }
     
     @EventHandler(priority = EventPriority.HIGH)

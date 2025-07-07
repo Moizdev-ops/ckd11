@@ -74,8 +74,9 @@ public class PlayerListener implements Listener {
                     roundsDuel.setActive(false);
                     
                     // Remove from active duels
-                    plugin.getDuelManager().getActiveRoundsDuels().remove(player.getUniqueId());
-                    plugin.getDuelManager().getActiveRoundsDuels().remove(opponent.getUniqueId());
+                    Map<UUID, RoundsDuel> activeRoundsDuels = plugin.getDuelManager().getActiveRoundsDuels();
+                    activeRoundsDuels.remove(player.getUniqueId());
+                    activeRoundsDuels.remove(opponent.getUniqueId());
                     
                     // Clean up opponent
                     plugin.getScoreboardManager().removeDuelScoreboard(opponent);

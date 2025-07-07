@@ -880,4 +880,13 @@ public class DuelManager {
         playersInCountdown.clear();
         playerNaturalRegenState.clear();
     }
+    
+    // Add getter methods for PlayerListener access
+    public Map<UUID, RoundsDuel> getActiveRoundsDuels() {
+        return activeRoundsDuels;
+    }
+    
+    public Map<UUID, Duel> getActiveDuels() {
+        return activeDuels;
+    }
 }

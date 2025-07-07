@@ -74,9 +74,6 @@ public class KitSelectorGUI implements Listener {
             
             kitMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Challenge " + target.getName() + " with this kit",
-                ChatColor.YELLOW + "Hearts: " + hearts,
-                ChatColor.YELLOW + "Natural Regen: " + (naturalRegen ? "Enabled" : "Disabled"),
-                ChatColor.YELLOW + "Health Display: " + (healthIndicators ? "Enabled" : "Disabled"),
                 ChatColor.GREEN + "Click to select"
             ));
             kitItem.setItemMeta(kitMeta);
@@ -87,7 +84,6 @@ public class KitSelectorGUI implements Listener {
         ItemStack cancelItem = new ItemStack(Material.BARRIER);
         ItemMeta cancelMeta = cancelItem.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "Cancel");
-        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "Cancel the duel request"));
         cancelItem.setItemMeta(cancelMeta);
         gui.setItem(22, cancelItem);
     }

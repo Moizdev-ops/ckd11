@@ -95,10 +95,7 @@ public class KitEditorGUI implements Listener {
             ItemStack glassPane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
             ItemMeta meta = glassPane.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + "Slot #" + (slot + 1));
-            meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Left-click to add item",
-                ChatColor.YELLOW + "Shift-click for bulk mode"
-            ));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add item"));
             glassPane.setItemMeta(meta);
             gui.setItem(slot, glassPane);
         }
@@ -114,7 +111,7 @@ public class KitEditorGUI implements Listener {
             ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
             ItemMeta meta = glassPane.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + armorSlots[armorIndex] + " Slot");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add " + armorSlots[armorIndex].toLowerCase()));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add armor"));
             glassPane.setItemMeta(meta);
             gui.setItem(guiSlot, glassPane);
         }
@@ -127,7 +124,7 @@ public class KitEditorGUI implements Listener {
             ItemStack offhandPane = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
             ItemMeta offhandMeta = offhandPane.getItemMeta();
             offhandMeta.setDisplayName(ChatColor.AQUA + "Offhand Slot");
-            offhandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add offhand item"));
+            offhandMeta.setLore(Arrays.asList(ChatColor.GRAY + "Click to add item"));
             offhandPane.setItemMeta(offhandMeta);
             gui.setItem(40, offhandPane);
         }
@@ -157,7 +154,6 @@ public class KitEditorGUI implements Listener {
         ItemStack settingsButton = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsButton.getItemMeta();
         settingsMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Kit Settings");
-        settingsMeta.setLore(Arrays.asList(ChatColor.GRAY + "Configure kit health & regen"));
         settingsButton.setItemMeta(settingsMeta);
         gui.setItem(46, settingsButton);
         
@@ -167,13 +163,8 @@ public class KitEditorGUI implements Listener {
         
         if (isBulkMode) {
             bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 BULK MODE: ACTIVE");
-            bulkMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Item: " + (bulkItem != null ? bulkItem.getType().name() : "None"),
-                ChatColor.RED + "Right-click to exit"
-            ));
         } else {
             bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 BULK MODE");
-            bulkMeta.setLore(Arrays.asList(ChatColor.GRAY + "Quick-fill multiple slots"));
         }
         
         bulkButton.setItemMeta(bulkMeta);

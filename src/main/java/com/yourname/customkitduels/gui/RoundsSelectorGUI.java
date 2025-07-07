@@ -65,10 +65,7 @@ public class RoundsSelectorGUI implements Listener {
             ItemStack roundItem = new ItemStack(Material.PAPER);
             ItemMeta roundMeta = roundItem.getItemMeta();
             roundMeta.setDisplayName(ChatColor.YELLOW + "First to " + rounds);
-            roundMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "First player to win " + rounds + " round" + (rounds > 1 ? "s" : "") + " wins the duel",
-                ChatColor.GREEN + "Click to select"
-            ));
+            roundMeta.setLore(Arrays.asList(ChatColor.GREEN + "Click to select"));
             roundItem.setItemMeta(roundMeta);
             gui.setItem(slots[i], roundItem);
         }
@@ -77,7 +74,6 @@ public class RoundsSelectorGUI implements Listener {
         ItemStack cancelItem = new ItemStack(Material.BARRIER);
         ItemMeta cancelMeta = cancelItem.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "Cancel Duel");
-        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "Cancel the duel request"));
         cancelItem.setItemMeta(cancelMeta);
         gui.setItem(22, cancelItem);
     }

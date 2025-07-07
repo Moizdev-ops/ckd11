@@ -3,6 +3,8 @@ package com.yourname.customkitduels.listeners;
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Duel;
 import com.yourname.customkitduels.data.RoundsDuel;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;

@@ -247,16 +247,14 @@ public class ArenaManager {
             try (com.sk89q.worldedit.EditSession editSession = 
                  com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(world)) {
                 
-                // Set a reasonable block limit for regeneration
-                editSession.setBlockChangeLimit(1000000);
+                // REMOVED: setBlockChangeLimit doesn't exist in this WorldEdit version
+                // The EditSession will use default limits which should be sufficient
                 
                 com.sk89q.worldedit.function.operation.Operation operation = 
                     new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
                         .createPaste(editSession)
                         .to(pastePosition)
                         .ignoreAirBlocks(false)
-                        .copyEntities(false)
-                        .copyBiomes(false)
                         .build();
                 
                 com.sk89q.worldedit.function.operation.Operations.complete(operation);

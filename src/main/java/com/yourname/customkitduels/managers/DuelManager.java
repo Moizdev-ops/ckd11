@@ -598,6 +598,15 @@ public class DuelManager {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (roundsDuel.isActive() && roundWinner.isOnline() && roundLoser.isOnline()) {
                     startNextRound(roundsDuel);
+                } else {
+                    // End duel if someone disconnected
+                    plugin.getLogger().info("Ending rounds duel - player disconnected during round transition");
+                    activeRoundsDuels.remove(roundsDuel.getPlayer1().getUniqueId());
+                    activeRoundsDuels.remove(roundsDuel.getPlayer2().getUniqueId());
+                    plugin.getScoreboardManager().removeDuelScoreboard(roundsDuel.getPlayer1());
+                    plugin.getScoreboardManager().removeDuelScoreboard(roundsDuel.getPlayer2());
+                    if (roundsDuel.getPlayer1().isOnline()) restorePlayer(roundsDuel.getPlayer1());
+                    if (roundsDuel.getPlayer2().isOnline()) restorePlayer(roundsDuel.getPlayer2());
                 }
             }, 40L); // 2 second delay
         }
@@ -699,12 +708,8 @@ public class DuelManager {
             player.removePotionEffect(effect.getType());
         }
         
-        // Restore natural regeneration for this player only
-        Boolean originalRegenState = playerNaturalRegenState.remove(player.getUniqueId());
-        if (originalRegenState != null && !originalRegenState) {
-            // If player originally had natural regen disabled, re-disable it
-            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, Integer.MAX_VALUE, -1, true, false));
-        }
+        // Clean up natural regen state
+        playerNaturalRegenState.remove(player.getUniqueId());
         
         // FIXED: Reset health to exactly 10 hearts (20 health points)
         try {
@@ -781,7 +786,6 @@ public class DuelManager {
         
         // Handle natural health regeneration setting per player
         if (!naturalRegen) {
-            // Store original state and disable natural regeneration for this player only
             playerNaturalRegenState.put(player.getUniqueId(), false);
             plugin.getLogger().info("Disabled natural regeneration for player " + player.getName() + " during duel");
         } else {

@@ -54,38 +54,112 @@ public class PlayerListener implements Listener {
             RoundsDuel roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
             if (roundsDuel != null) {
                 opponent = roundsDuel.getOpponent(player);
+                
+                // Award all remaining rounds to opponent
+                if (opponent != null && opponent.isOnline()) {
+                    int remainingRounds = roundsDuel.getTargetRounds() - Math.max(roundsDuel.getPlayer1Wins(), roundsDuel.getPlayer2Wins());
+                    
+                    // Set opponent as winner of all remaining rounds
+                    if (opponent.equals(roundsDuel.getPlayer1())) {
+                        while (roundsDuel.getPlayer1Wins() < roundsDuel.getTargetRounds()) {
+                            roundsDuel.addWin(opponent);
+                        }
+                    } else {
+                        while (roundsDuel.getPlayer2Wins() < roundsDuel.getTargetRounds()) {
+                            roundsDuel.addWin(opponent);
+                        }
+                    }
+                    
+                    // Mark duel as inactive to prevent further processing
+                    roundsDuel.setActive(false);
+                    
+                    // Remove from active duels
+                    plugin.getDuelManager().getActiveRoundsDuels().remove(player.getUniqueId());
+                    plugin.getDuelManager().getActiveRoundsDuels().remove(opponent.getUniqueId());
+                    
+                    // Clean up opponent
+                    plugin.getScoreboardManager().removeDuelScoreboard(opponent);
+                    plugin.getHealthDisplayManager().stopHealthDisplay(opponent);
+                    
+                    // Send win message to opponent
+                    opponent.sendMessage(ChatColor.GREEN + player.getName() + " disconnected! You win the duel!");
+                    
+                    // Restore opponent and teleport to spawn
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                        if (opponent.isOnline()) {
+                            // Restore opponent's health and inventory
+                            restorePlayerQuick(opponent);
+                            
+                            // Teleport to spawn
+                            Location spawn = plugin.getSpawnManager().getSpawn();
+                            if (spawn != null) {
+                                opponent.teleport(spawn);
+                                opponent.sendMessage(ChatColor.GREEN + "You have been teleported to spawn.");
+                            } else {
+                                opponent.teleport(opponent.getWorld().getSpawnLocation());
+                            }
+                        }
+                    }, 20L); // 1 second delay
+                }
             } else {
                 Duel duel = plugin.getDuelManager().getDuel(player);
                 if (duel != null) {
                     opponent = duel.getOpponent(player);
+                    
+                    // End regular duel
+                    plugin.getDuelManager().endDuel(player, true);
+                    
+                    // Notify opponent and teleport them to spawn
+                    if (opponent != null && opponent.isOnline()) {
+                        opponent.sendMessage(ChatColor.GREEN + player.getName() + " disconnected! You win the duel!");
+                        
+                        // Teleport opponent to spawn after a short delay
+                        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                            if (opponent.isOnline()) {
+                                Location spawn = plugin.getSpawnManager().getSpawn();
+                                if (spawn != null) {
+                                    opponent.teleport(spawn);
+                                    opponent.sendMessage(ChatColor.GREEN + "You have been teleported to spawn.");
+                                } else {
+                                    opponent.teleport(opponent.getWorld().getSpawnLocation());
+                                }
+                            }
+                        }, 20L); // 1 second delay
+                    }
                 } else {
                     opponent = null;
                 }
             }
             
-            // End the duel when player quits
-            plugin.getDuelManager().endDuel(player, true);
-            
-            // Notify opponent and teleport them to spawn
-            if (opponent != null && opponent.isOnline()) {
-                opponent.sendMessage(ChatColor.RED + player.getName() + " disconnected! You win the duel!");
-                
-                // Teleport opponent to spawn after a short delay
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (opponent.isOnline()) {
-                        Location spawn = plugin.getSpawnManager().getSpawn();
-                        if (spawn != null) {
-                            opponent.teleport(spawn);
-                            opponent.sendMessage(ChatColor.GREEN + "You have been teleported to spawn.");
-                        } else {
-                            opponent.teleport(opponent.getWorld().getSpawnLocation());
-                        }
-                    }
-                }, 40L); // 2 second delay
-            }
-            
             plugin.getLogger().info("Player " + player.getName() + " quit during duel - duel ended");
         }
+    }
+    
+    private void restorePlayerQuick(Player player) {
+        // Clear inventory
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
+        player.getInventory().setItemInOffHand(null);
+        
+        // Remove potion effects
+        for (org.bukkit.potion.PotionEffect effect : player.getActivePotionEffects()) {
+            player.removePotionEffect(effect.getType());
+        }
+        
+        // Reset health to default
+        try {
+            player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(20.0);
+            player.setHealth(20.0);
+        } catch (Exception e) {
+            player.setHealth(Math.min(20.0, player.getMaxHealth()));
+        }
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        
+        // Set gamemode
+        player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        
+        player.updateInventory();
     }
     
     @EventHandler(priority = EventPriority.HIGH)

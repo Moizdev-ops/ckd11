@@ -2,11 +2,16 @@ package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.*;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -21,6 +26,7 @@ public class DuelManager {
     private final Map<UUID, Location> savedLocations;
     private final Set<UUID> playersInCountdown;
     private final Map<UUID, BukkitRunnable> arenaBoundsCheckers;
+    private final Map<UUID, Boolean> playerNaturalRegenState; // Store original natural regen state per player
     
     public DuelManager(CustomKitDuels plugin) {
         this.plugin = plugin;
@@ -31,6 +37,7 @@ public class DuelManager {
         this.savedLocations = new HashMap<>();
         this.playersInCountdown = new HashSet<>();
         this.arenaBoundsCheckers = new HashMap<>();
+        this.playerNaturalRegenState = new HashMap<>();
     }
     
     public void sendDuelRequest(Player challenger, Player target, Kit kit) {
@@ -105,11 +112,22 @@ public class DuelManager {
         RoundsDuelRequest request = new RoundsDuelRequest(challenger, target, kit, arena, targetRounds);
         pendingRoundsRequests.put(target.getUniqueId(), request);
         
-        // Send messages
+        // Send enhanced messages with clickable accept button
         challenger.sendMessage(ChatColor.GREEN + "Rounds duel request sent to " + target.getName() + " with kit '" + kit.getName() + "' (First to " + targetRounds + ")!");
-        target.sendMessage(ChatColor.YELLOW + challenger.getName() + " has challenged you to a rounds duel!");
-        target.sendMessage(ChatColor.YELLOW + "Kit: " + kit.getName() + " | First to " + targetRounds + " rounds");
-        target.sendMessage(ChatColor.YELLOW + "Type /ckd accept to accept the duel.");
+        
+        // Send formatted message to target
+        target.sendMessage(ChatColor.YELLOW + challenger.getName() + " has sent you a custom kit duel.");
+        target.sendMessage(ChatColor.YELLOW + "Rounds: " + ChatColor.WHITE + targetRounds);
+        
+        // Create clickable accept button
+        TextComponent acceptButton = new TextComponent("[Click to Accept]");
+        acceptButton.setColor(net.md_5.bungee.api.ChatColor.GREEN);
+        acceptButton.setBold(true);
+        acceptButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ckd accept"));
+        acceptButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
+            new ComponentBuilder("Click to accept the duel").color(net.md_5.bungee.api.ChatColor.GREEN).create()));
+        
+        target.spigot().sendMessage(acceptButton);
         
         // Auto-expire request after 30 seconds
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -508,18 +526,6 @@ public class DuelManager {
         plugin.getScoreboardManager().updateDuelScoreboard(roundsDuel.getPlayer1(), roundsDuel);
         plugin.getScoreboardManager().updateDuelScoreboard(roundsDuel.getPlayer2(), roundsDuel);
         
-        // Send round result messages
-        if (roundWinner != null && roundLoser != null) {
-            String roundMessage = ChatColor.YELLOW + roundWinner.getName() + " won round " + (roundsDuel.getCurrentRound() - 1) + "!";
-            roundWinner.sendMessage(roundMessage);
-            roundLoser.sendMessage(roundMessage);
-            
-            // Show current score
-            String scoreMessage = ChatColor.AQUA + roundsDuel.getScoreString();
-            roundWinner.sendMessage(scoreMessage);
-            roundLoser.sendMessage(scoreMessage);
-        }
-        
         // Check if duel is complete
         if (roundsDuel.isComplete()) {
             // End the entire rounds duel
@@ -671,6 +677,13 @@ public class DuelManager {
             player.removePotionEffect(effect.getType());
         }
         
+        // Restore natural regeneration for this player only
+        Boolean originalRegenState = playerNaturalRegenState.remove(player.getUniqueId());
+        if (originalRegenState != null && !originalRegenState) {
+            // If player originally had natural regen disabled, re-disable it
+            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, Integer.MAX_VALUE, -1, true, false));
+        }
+        
         // FIXED: Reset health to exactly 10 hearts (20 health points)
         try {
             player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(20.0);
@@ -683,10 +696,6 @@ public class DuelManager {
         }
         player.setFoodLevel(20);
         player.setSaturation(20);
-        
-        // Restore natural regeneration gamerule
-        World world = player.getWorld();
-        world.setGameRule(GameRule.NATURAL_REGENERATION, true);
         
         // Set gamemode
         player.setGameMode(GameMode.SURVIVAL);
@@ -748,12 +757,15 @@ public class DuelManager {
         player.setFoodLevel(20);
         player.setSaturation(20);
         
-        // Handle natural health regeneration setting
+        // Handle natural health regeneration setting per player
         if (!naturalRegen) {
-            // Disable natural regeneration by setting the gamerule for this player's world
-            World world = player.getWorld();
-            world.setGameRule(GameRule.NATURAL_REGENERATION, false);
-            plugin.getLogger().info("Disabled natural regeneration for world " + world.getName() + " during duel");
+            // Store original state and disable natural regeneration for this player only
+            playerNaturalRegenState.put(player.getUniqueId(), false);
+            // Use negative regeneration effect to disable natural regen for this player
+            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, Integer.MAX_VALUE, -1, true, false));
+            plugin.getLogger().info("Disabled natural regeneration for player " + player.getName() + " during duel");
+        } else {
+            playerNaturalRegenState.put(player.getUniqueId(), true);
         }
         
         // Set gamemode
@@ -866,5 +878,6 @@ public class DuelManager {
         pendingRoundsRequests.clear();
         savedLocations.clear();
         playersInCountdown.clear();
+        playerNaturalRegenState.clear();
     }
 }

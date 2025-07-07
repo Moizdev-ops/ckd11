@@ -130,8 +130,22 @@ public class HealthDisplayManager {
             
             // Set the score to show hearts (rounded to nearest 0.5)
             int displayHearts = (int) Math.round(hearts * 2); // Multiply by 2 to show half hearts
-            Score score = healthObjective.getScore(player.getName());
-            score.setScore(displayHearts);
+            
+            // Get or create score for this player - FIXED: Use getScore() properly
+            String playerName = player.getName();
+            Score score = healthObjective.getScore(playerName);
+            
+            // Only update if the score has changed to avoid "read-only" errors
+            if (score.getScore() != displayHearts) {
+                try {
+                    score.setScore(displayHearts);
+                } catch (IllegalStateException e) {
+                    // Score might be read-only, try to unregister and re-register
+                    healthScoreboard.resetScores(playerName);
+                    Score newScore = healthObjective.getScore(playerName);
+                    newScore.setScore(displayHearts);
+                }
+            }
             
             // Also update for opponent if they're in the same duel
             var roundsDuel = plugin.getDuelManager().getRoundsDuel(player);
@@ -142,8 +156,20 @@ public class HealthDisplayManager {
                     double opponentHealth = opponent.getHealth();
                     double opponentHearts = opponentHealth / 2.0;
                     int opponentDisplayHearts = (int) Math.round(opponentHearts * 2);
-                    Score opponentScore = healthObjective.getScore(opponent.getName());
-                    opponentScore.setScore(opponentDisplayHearts);
+                    
+                    String opponentName = opponent.getName();
+                    Score opponentScore = healthObjective.getScore(opponentName);
+                    
+                    if (opponentScore.getScore() != opponentDisplayHearts) {
+                        try {
+                            opponentScore.setScore(opponentDisplayHearts);
+                        } catch (IllegalStateException e) {
+                            // Score might be read-only, try to unregister and re-register
+                            healthScoreboard.resetScores(opponentName);
+                            Score newOpponentScore = healthObjective.getScore(opponentName);
+                            newOpponentScore.setScore(opponentDisplayHearts);
+                        }
+                    }
                 }
             } else {
                 // Check regular duel
@@ -155,8 +181,20 @@ public class HealthDisplayManager {
                         double opponentHealth = opponent.getHealth();
                         double opponentHearts = opponentHealth / 2.0;
                         int opponentDisplayHearts = (int) Math.round(opponentHearts * 2);
-                        Score opponentScore = healthObjective.getScore(opponent.getName());
-                        opponentScore.setScore(opponentDisplayHearts);
+                        
+                        String opponentName = opponent.getName();
+                        Score opponentScore = healthObjective.getScore(opponentName);
+                        
+                        if (opponentScore.getScore() != opponentDisplayHearts) {
+                            try {
+                                opponentScore.setScore(opponentDisplayHearts);
+                            } catch (IllegalStateException e) {
+                                // Score might be read-only, try to unregister and re-register
+                                healthScoreboard.resetScores(opponentName);
+                                Score newOpponentScore = healthObjective.getScore(opponentName);
+                                newOpponentScore.setScore(opponentDisplayHearts);
+                            }
+                        }
                     }
                 }
             }

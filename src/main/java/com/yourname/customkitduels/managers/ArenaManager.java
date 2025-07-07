@@ -153,20 +153,34 @@ public class ArenaManager {
         }
         
         try {
-            // Use FAWE API to generate schematic - FIXED TYPE CONVERSIONS
+            // Use FAWE API to generate schematic with proper error handling
             com.sk89q.worldedit.world.World world = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(player.getWorld());
             com.sk89q.worldedit.math.BlockVector3 min = com.sk89q.worldedit.bukkit.BukkitAdapter.asBlockVector(arena.getPos1());
             com.sk89q.worldedit.math.BlockVector3 max = com.sk89q.worldedit.bukkit.BukkitAdapter.asBlockVector(arena.getPos2());
             
-            com.sk89q.worldedit.regions.CuboidRegion region = new com.sk89q.worldedit.regions.CuboidRegion(world, min, max);
+            // Ensure min/max are properly ordered
+            com.sk89q.worldedit.math.BlockVector3 actualMin = min.getMinimum(max);
+            com.sk89q.worldedit.math.BlockVector3 actualMax = min.getMaximum(max);
             
+            com.sk89q.worldedit.regions.CuboidRegion region = new com.sk89q.worldedit.regions.CuboidRegion(world, actualMin, actualMax);
+            
+            // Use a more robust clipboard creation approach
             com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard clipboard = 
                 new com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard(region);
             
-            com.sk89q.worldedit.function.operation.ForwardExtentCopy copy = 
-                new com.sk89q.worldedit.function.operation.ForwardExtentCopy(world, region, clipboard, min);
-            
-            com.sk89q.worldedit.function.operation.Operations.complete(copy);
+            // Create edit session with proper limits
+            try (com.sk89q.worldedit.EditSession editSession = 
+                 com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(world)) {
+                
+                com.sk89q.worldedit.function.operation.ForwardExtentCopy copy = 
+                    new com.sk89q.worldedit.function.operation.ForwardExtentCopy(editSession, region, clipboard, actualMin);
+                
+                // Set copy options to be more robust
+                copy.setCopyingEntities(false);
+                copy.setCopyingBiomes(false);
+                
+                com.sk89q.worldedit.function.operation.Operations.complete(copy);
+            }
             
             // Save schematic
             File schematicFile = new File(schematicsFolder, arena.getSchematicName() + ".schem");
@@ -182,6 +196,7 @@ public class ArenaManager {
             
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to generate schematic for arena " + arena.getName() + ": " + e.getMessage());
+            e.printStackTrace();
             throw new Exception("Schematic generation failed: " + e.getMessage());
         }
     }
@@ -204,7 +219,7 @@ public class ArenaManager {
                 return;
             }
             
-            // Load and paste schematic using FAWE - FIXED TYPE CONVERSIONS
+            // Load and paste schematic using FAWE with proper error handling
             com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat format = 
                 com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat.SPONGE_SCHEMATIC;
             
@@ -234,6 +249,7 @@ public class ArenaManager {
             
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to regenerate arena " + arena.getName() + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

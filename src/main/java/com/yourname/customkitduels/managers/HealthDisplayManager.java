@@ -38,7 +38,7 @@ public class HealthDisplayManager {
      * Create the shared health scoreboard
      */
     private void createHealthScoreboard() {
-        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        org.bukkit.scoreboard.ScoreboardManager manager = Bukkit.getScoreboardManager();
         if (manager == null) {
             plugin.getLogger().severe("ScoreboardManager is null! Cannot create health display.");
             return;
@@ -103,7 +103,7 @@ public class HealthDisplayManager {
             player.setScoreboard(originalBoard);
         } else {
             // Fallback to main scoreboard
-            ScoreboardManager manager = Bukkit.getScoreboardManager();
+            org.bukkit.scoreboard.ScoreboardManager manager = Bukkit.getScoreboardManager();
             if (manager != null) {
                 player.setScoreboard(manager.getMainScoreboard());
             }

@@ -219,7 +219,7 @@ public class ArenaManager {
                 return;
             }
             
-            // Load and paste schematic using FAWE with proper error handling
+            // Load schematic using FAWE
             com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat format = 
                 com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat.SPONGE_SCHEMATIC;
             
@@ -232,14 +232,31 @@ public class ArenaManager {
             com.sk89q.worldedit.world.World world = 
                 com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(arena.getPos1().getWorld());
             
+            // FIXED: Calculate the minimum corner for proper positioning
+            Location pos1 = arena.getPos1();
+            Location pos2 = arena.getPos2();
+            
+            // Get the minimum corner (bottom-left-back corner)
+            int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+            int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+            int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+            
+            com.sk89q.worldedit.math.BlockVector3 pastePosition = 
+                com.sk89q.worldedit.math.BlockVector3.at(minX, minY, minZ);
+            
             try (com.sk89q.worldedit.EditSession editSession = 
                  com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(world)) {
+                
+                // Set a reasonable block limit for regeneration
+                editSession.setBlockChangeLimit(1000000);
                 
                 com.sk89q.worldedit.function.operation.Operation operation = 
                     new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
                         .createPaste(editSession)
-                        .to(com.sk89q.worldedit.bukkit.BukkitAdapter.asBlockVector(arena.getPos1()))
+                        .to(pastePosition)
                         .ignoreAirBlocks(false)
+                        .copyEntities(false)
+                        .copyBiomes(false)
                         .build();
                 
                 com.sk89q.worldedit.function.operation.Operations.complete(operation);

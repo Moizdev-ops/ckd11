@@ -192,6 +192,10 @@ public class DuelManager {
         savedLocations.put(challenger.getUniqueId(), challenger.getLocation());
         savedLocations.put(target.getUniqueId(), target.getLocation());
         
+        // FIXED: Give kit immediately after accepting so players can organize during countdown
+        preparePlayer(challenger, kit, challenger.getUniqueId());
+        preparePlayer(target, kit, challenger.getUniqueId());
+        
         // Teleport players to arena spawn points
         challenger.teleport(arena.getSpawn1());
         target.teleport(arena.getSpawn2());
@@ -199,6 +203,8 @@ public class DuelManager {
         // Send initial message
         challenger.sendMessage(ChatColor.GREEN + "Duel accepted! Preparing for battle...");
         target.sendMessage(ChatColor.GREEN + "Duel accepted! Preparing for battle...");
+        challenger.sendMessage(ChatColor.YELLOW + "Use the 5-second countdown to organize your inventory!");
+        target.sendMessage(ChatColor.YELLOW + "Use the 5-second countdown to organize your inventory!");
         
         // Start countdown
         new BukkitRunnable() {
@@ -273,6 +279,10 @@ public class DuelManager {
         savedLocations.put(challenger.getUniqueId(), challenger.getLocation());
         savedLocations.put(target.getUniqueId(), target.getLocation());
         
+        // FIXED: Give kit immediately after accepting so players can organize during countdown
+        preparePlayer(challenger, kit, challenger.getUniqueId());
+        preparePlayer(target, kit, challenger.getUniqueId());
+        
         // Teleport players to arena spawn points
         challenger.teleport(arena.getSpawn1());
         target.teleport(arena.getSpawn2());
@@ -280,6 +290,8 @@ public class DuelManager {
         // Send initial message
         challenger.sendMessage(ChatColor.GREEN + "Rounds duel accepted! First to " + targetRounds + " rounds wins!");
         target.sendMessage(ChatColor.GREEN + "Rounds duel accepted! First to " + targetRounds + " rounds wins!");
+        challenger.sendMessage(ChatColor.YELLOW + "Use the 5-second countdown to organize your inventory!");
+        target.sendMessage(ChatColor.YELLOW + "Use the 5-second countdown to organize your inventory!");
         
         // Start countdown
         new BukkitRunnable() {
@@ -351,9 +363,9 @@ public class DuelManager {
         activeDuels.put(challenger.getUniqueId(), duel);
         activeDuels.put(target.getUniqueId(), duel);
         
-        // Prepare players with SAME kit settings
-        preparePlayer(challenger, kit, challenger.getUniqueId());
-        preparePlayer(target, kit, challenger.getUniqueId()); // Use challenger's kit settings for both
+        // Players already have kit from countdown, just refresh health/effects
+        refreshPlayerForDuel(challenger, kit, challenger.getUniqueId());
+        refreshPlayerForDuel(target, kit, challenger.getUniqueId());
         
         // Start arena bounds checking
         startArenaBoundsChecking(challenger, arena);
@@ -365,17 +377,7 @@ public class DuelManager {
             plugin.getHealthDisplayManager().startHealthDisplay(target);
         }
         
-        // Send messages
-        challenger.sendMessage(ChatColor.GREEN + "Duel started against " + target.getName() + "!");
-        target.sendMessage(ChatColor.GREEN + "Duel started against " + challenger.getName() + "!");
-        
-        // Announce to arena
-        String message = ChatColor.YELLOW + "Duel started: " + challenger.getName() + " vs " + target.getName();
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (isPlayerInArena(player, arena)) {
-                player.sendMessage(message);
-            }
-        }
+        // REMOVED: Duplicate messages - countdown already handles this
     }
     
     private void startRoundsDuel(Player challenger, Player target, Kit kit, Arena arena, int targetRounds) {
@@ -384,9 +386,9 @@ public class DuelManager {
         activeRoundsDuels.put(challenger.getUniqueId(), roundsDuel);
         activeRoundsDuels.put(target.getUniqueId(), roundsDuel);
         
-        // Prepare players with SAME kit settings
-        preparePlayer(challenger, kit, challenger.getUniqueId());
-        preparePlayer(target, kit, challenger.getUniqueId()); // Use challenger's kit settings for both
+        // Players already have kit from countdown, just refresh health/effects
+        refreshPlayerForDuel(challenger, kit, challenger.getUniqueId());
+        refreshPlayerForDuel(target, kit, challenger.getUniqueId());
         
         // Start arena bounds checking
         startArenaBoundsChecking(challenger, arena);
@@ -402,17 +404,37 @@ public class DuelManager {
         plugin.getScoreboardManager().showDuelScoreboard(challenger, roundsDuel);
         plugin.getScoreboardManager().showDuelScoreboard(target, roundsDuel);
         
-        // Send messages
-        challenger.sendMessage(ChatColor.GREEN + "Rounds duel started! " + roundsDuel.getProgressString());
-        target.sendMessage(ChatColor.GREEN + "Rounds duel started! " + roundsDuel.getProgressString());
+        // REMOVED: Duplicate messages - countdown already handles this
+    }
+    
+    // ADDED: New method to refresh player without giving kit again
+    private void refreshPlayerForDuel(Player player, Kit kit, UUID kitOwnerUUID) {
+        // Get kit settings from the kit owner (challenger)
+        double kitHearts = plugin.getKitManager().getKitHearts(kitOwnerUUID, kit.getName());
+        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(kitOwnerUUID, kit.getName());
         
-        // Announce to arena
-        String message = ChatColor.YELLOW + "Rounds duel started: " + challenger.getName() + " vs " + target.getName() + " (First to " + targetRounds + ")";
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (isPlayerInArena(player, arena)) {
-                player.sendMessage(message);
-            }
+        // Set health based on kit settings (convert hearts to health points)
+        double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points
+        try {
+            player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(maxHealth);
+            player.setHealth(maxHealth);
+        } catch (Exception e) {
+            player.setHealth(Math.min(maxHealth, player.getMaxHealth()));
         }
+        
+        // Set hunger
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        
+        // Handle natural health regeneration setting per player
+        if (!naturalRegen) {
+            playerNaturalRegenState.put(player.getUniqueId(), false);
+        } else {
+            playerNaturalRegenState.put(player.getUniqueId(), true);
+        }
+        
+        // Set gamemode
+        player.setGameMode(GameMode.SURVIVAL);
     }
     
     private void startArenaBoundsChecking(Player player, Arena arena) {
@@ -761,8 +783,6 @@ public class DuelManager {
         if (!naturalRegen) {
             // Store original state and disable natural regeneration for this player only
             playerNaturalRegenState.put(player.getUniqueId(), false);
-            // Use negative regeneration effect to disable natural regen for this player
-            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, Integer.MAX_VALUE, -1, true, false));
             plugin.getLogger().info("Disabled natural regeneration for player " + player.getName() + " during duel");
         } else {
             playerNaturalRegenState.put(player.getUniqueId(), true);

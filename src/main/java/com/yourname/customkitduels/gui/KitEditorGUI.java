@@ -163,8 +163,21 @@ public class KitEditorGUI implements Listener {
         
         if (isBulkMode) {
             bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 BULK MODE: ACTIVE");
+            bulkMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Bulk mode is currently active",
+                ChatColor.YELLOW + "Item: " + (bulkItem != null ? bulkItem.getType().name() : "None"),
+                ChatColor.AQUA + "Click slots to place this item",
+                ChatColor.RED + "Right-click to exit bulk mode",
+                ChatColor.GOLD + "Left-click to change bulk item"
+            ));
         } else {
             bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 BULK MODE");
+            bulkMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Activate bulk mode to quickly",
+                ChatColor.GRAY + "place the same item in multiple slots",
+                ChatColor.GREEN + "Click to select bulk item",
+                ChatColor.AQUA + "Or shift-click any slot with an item"
+            ));
         }
         
         bulkButton.setItemMeta(bulkMeta);

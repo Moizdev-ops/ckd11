@@ -4,6 +4,7 @@ import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Duel;
 import com.yourname.customkitduels.data.RoundsDuel;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -63,9 +64,22 @@ public class PlayerListener implements Listener {
             // End the duel when player quits
             plugin.getDuelManager().endDuel(player, true);
             
-            // Notify opponent
+            // Notify opponent and teleport them to spawn
             if (opponent != null && opponent.isOnline()) {
                 opponent.sendMessage(ChatColor.RED + player.getName() + " disconnected! You win the duel!");
+                
+                // Teleport opponent to spawn after a short delay
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (opponent.isOnline()) {
+                        Location spawn = plugin.getSpawnManager().getSpawn();
+                        if (spawn != null) {
+                            opponent.teleport(spawn);
+                            opponent.sendMessage(ChatColor.GREEN + "You have been teleported to spawn.");
+                        } else {
+                            opponent.teleport(opponent.getWorld().getSpawnLocation());
+                        }
+                    }
+                }, 40L); // 2 second delay
             }
             
             plugin.getLogger().info("Player " + player.getName() + " quit during duel - duel ended");

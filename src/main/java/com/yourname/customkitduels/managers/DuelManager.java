@@ -184,7 +184,7 @@ public class DuelManager {
         
         // Start countdown
         new BukkitRunnable() {
-            int countdown = 4;
+            int countdown = 5;
             
             @Override
             public void run() {
@@ -260,7 +260,7 @@ public class DuelManager {
         
         // Start countdown
         new BukkitRunnable() {
-            int countdown = 4;
+            int countdown = 5;
             
             @Override
             public void run() {
@@ -682,18 +682,31 @@ public class DuelManager {
         // Set gamemode
         player.setGameMode(GameMode.SURVIVAL);
         
-        // Teleport back
-        Location savedLocation = savedLocations.remove(player.getUniqueId());
-        if (savedLocation != null) {
-            player.teleport(savedLocation);
+        // Teleport back to spawn
+        Location spawn = plugin.getSpawnManager().getSpawn();
+        if (spawn != null) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    player.teleport(spawn);
+                    player.sendMessage(ChatColor.GREEN + "You have been teleported to spawn.");
+                }
+            }, 40L); // 2 second delay
         } else {
-            // Try to teleport to spawn
-            Location spawn = plugin.getSpawnManager().getSpawn();
-            if (spawn != null) {
-                player.teleport(spawn);
+            // Fallback to saved location or world spawn
+            Location savedLocation = savedLocations.remove(player.getUniqueId());
+            if (savedLocation != null) {
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.teleport(savedLocation);
+                    }
+                }, 40L);
             } else {
                 // Fallback to world spawn
-                player.teleport(player.getWorld().getSpawnLocation());
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.teleport(player.getWorld().getSpawnLocation());
+                    }
+                }, 40L);
             }
         }
         

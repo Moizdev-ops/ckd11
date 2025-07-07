@@ -317,12 +317,13 @@ public class ArenaEditorGUI implements Listener {
             if (arena.getPos1() != null && arena.getPos2() != null) {
                 try {
                     plugin.getArenaManager().generateSchematic(arena, player);
-                    player.sendMessage(ChatColor.GREEN + "Schematic generated automatically!");
+                    player.sendMessage(ChatColor.GREEN + "Arena regeneration enabled!");
                 } catch (Exception e) {
-                    player.sendMessage(ChatColor.RED + "Failed to generate schematic: " + e.getMessage());
+                    player.sendMessage(ChatColor.RED + "Failed to enable regeneration: " + e.getMessage());
+                    arena.setRegeneration(false); // Disable if failed
                 }
             } else {
-                player.sendMessage(ChatColor.YELLOW + "Set both positions to auto-generate schematic!");
+                player.sendMessage(ChatColor.YELLOW + "Arena regeneration enabled! Set positions to generate schematic.");
             }
         } else {
             player.sendMessage(ChatColor.YELLOW + "Arena regeneration disabled.");

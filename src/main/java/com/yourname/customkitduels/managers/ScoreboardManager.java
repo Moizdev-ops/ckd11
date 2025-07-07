@@ -2,8 +2,8 @@ package com.yourname.customkitduels.managers;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.RoundsDuel;
-import com.yourname.customkitduels.utils.ColorUtils;
 import fr.mrmicky.fastboard.FastBoard;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -12,10 +12,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Enhanced ScoreboardManager using FastBoard with Adventure API support
- * Provides high-performance scoreboards with proper hex color support
+ * Enhanced ScoreboardManager using FastBoard with proper color support
+ * Provides high-performance scoreboards with hex color support
  */
 public class ScoreboardManager {
     
@@ -25,6 +27,11 @@ public class ScoreboardManager {
     private final Map<UUID, FastBoard> playerBoards;
     private final Map<UUID, BukkitRunnable> updateTasks;
     
+    // Color patterns for proper hex color support
+    private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    private static final Pattern MINI_HEX_PATTERN = Pattern.compile("<#([A-Fa-f0-9]{6})>");
+    private static final Pattern GRADIENT_PATTERN = Pattern.compile("<gradient:(#[A-Fa-f0-9]{6}):(#[A-Fa-f0-9]{6})>(.*?)</gradient>");
+    
     public ScoreboardManager(CustomKitDuels plugin) {
         this.plugin = plugin;
         this.scoreboardFile = new File(plugin.getDataFolder(), "scoreboard.yml");
@@ -32,7 +39,7 @@ public class ScoreboardManager {
         this.updateTasks = new HashMap<>();
         
         loadScoreboardConfig();
-        plugin.getLogger().info("ScoreboardManager initialized with FastBoard and Adventure API support");
+        plugin.getLogger().info("ScoreboardManager initialized with FastBoard and proper color support");
     }
     
     private void loadScoreboardConfig() {
@@ -46,24 +53,24 @@ public class ScoreboardManager {
     private void createDefaultScoreboardConfig() {
         scoreboardConfig = new YamlConfiguration();
         
-        // Using MiniMessage format with gradients and hex colors
-        scoreboardConfig.set("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
+        // Using proper color codes that will be translated
+        scoreboardConfig.set("title", "&#00FF98&lPakMC");
         scoreboardConfig.set("lines", Arrays.asList(
             " ",
-            " <#00FF98><bold>DUEL</bold> <gray>(FT<#C3F6E2><rounds></gray>)",
-            " <#C3F6E2>│ Duration: <#00FF98><duration>",
-            " <#C3F6E2>│ Round: <#00FF98><current_round>",
+            " &#00FF98&lDUEL &7(FT&#C3F6E2<rounds>&7)",
+            " &#C3F6E2│ Duration: &#00FF98<duration>",
+            " &#C3F6E2│ Round: &#00FF98<current_round>",
             " ",
-            " <#00FF98><bold>SCORE</bold>",
-            " <#C3F6E2>│ <green><player_score></green> <gray>-</gray> <red><opponent_score></red>",
-            " <#C3F6E2>│ <gray><player_name> vs <opponent_name></gray>",
+            " &#00FF98&lSCORE",
+            " &#C3F6E2│ &a<player_score> &7- &c<opponent_score>",
+            " &#C3F6E2│ &7<player_name> vs <opponent_name>",
             " ",
-            "    <#C3F6E2>pakmc.xyz"
+            "    &#C3F6E2pakmc.xyz"
         ));
         
         try {
             scoreboardConfig.save(scoreboardFile);
-            plugin.getLogger().info("Created default scoreboard.yml with MiniMessage format and hex colors");
+            plugin.getLogger().info("Created default scoreboard.yml with proper color format");
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to create scoreboard.yml: " + e.getMessage());
         }
@@ -74,8 +81,8 @@ public class ScoreboardManager {
         removeDuelScoreboard(player);
         
         // Get title and translate colors
-        String title = scoreboardConfig.getString("title", "<gradient:#00FF98:#C3F6E2><bold>PakMC</bold></gradient>");
-        String translatedTitle = ColorUtils.translateColors(title);
+        String title = scoreboardConfig.getString("title", "&#00FF98&lPakMC");
+        String translatedTitle = translateColors(title);
         
         // Create FastBoard
         FastBoard board = new FastBoard(player);
@@ -121,8 +128,8 @@ public class ScoreboardManager {
         for (String line : lines) {
             String processedLine = replacePlaceholders(line, player, opponent, roundsDuel);
             
-            // Translate colors using Adventure API
-            processedLine = ColorUtils.translateColors(processedLine);
+            // Translate colors properly
+            processedLine = translateColors(processedLine);
             
             processedLines.add(processedLine);
         }
@@ -176,9 +183,90 @@ public class ScoreboardManager {
         return name.substring(0, maxLength - 1) + "…";
     }
     
+    /**
+     * Properly translate colors including hex colors
+     */
+    private String translateColors(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        
+        // Convert &#RRGGBB to proper hex format
+        text = convertHexColors(text);
+        
+        // Convert <#RRGGBB> to proper hex format
+        text = convertMiniHexColors(text);
+        
+        // Handle gradients (simplified - just use first color)
+        text = convertGradients(text);
+        
+        // Handle legacy color codes
+        text = ChatColor.translateAlternateColorCodes('&', text);
+        
+        return text;
+    }
+    
+    private String convertHexColors(String text) {
+        Matcher matcher = HEX_PATTERN.matcher(text);
+        StringBuffer buffer = new StringBuffer();
+        
+        while (matcher.find()) {
+            String hex = matcher.group(1);
+            try {
+                String replacement = net.md_5.bungee.api.ChatColor.of("#" + hex).toString();
+                matcher.appendReplacement(buffer, replacement);
+            } catch (Exception e) {
+                // Fallback to legacy color if hex fails
+                matcher.appendReplacement(buffer, ChatColor.WHITE.toString());
+            }
+        }
+        matcher.appendTail(buffer);
+        
+        return buffer.toString();
+    }
+    
+    private String convertMiniHexColors(String text) {
+        Matcher matcher = MINI_HEX_PATTERN.matcher(text);
+        StringBuffer buffer = new StringBuffer();
+        
+        while (matcher.find()) {
+            String hex = matcher.group(1);
+            try {
+                String replacement = net.md_5.bungee.api.ChatColor.of("#" + hex).toString();
+                matcher.appendReplacement(buffer, replacement);
+            } catch (Exception e) {
+                // Fallback to legacy color if hex fails
+                matcher.appendReplacement(buffer, ChatColor.WHITE.toString());
+            }
+        }
+        matcher.appendTail(buffer);
+        
+        return buffer.toString();
+    }
+    
+    private String convertGradients(String text) {
+        Matcher matcher = GRADIENT_PATTERN.matcher(text);
+        StringBuffer buffer = new StringBuffer();
+        
+        while (matcher.find()) {
+            String startColor = matcher.group(1);
+            String content = matcher.group(3);
+            try {
+                String replacement = net.md_5.bungee.api.ChatColor.of(startColor).toString() + content;
+                matcher.appendReplacement(buffer, replacement);
+            } catch (Exception e) {
+                // Fallback to just the content
+                matcher.appendReplacement(buffer, content);
+            }
+        }
+        matcher.appendTail(buffer);
+        
+        return buffer.toString();
+    }
+    
     public void reloadConfig() {
         loadScoreboardConfig();
-        plugin.getLogger().info("Scoreboard configuration reloaded with FastBoard and Adventure API support");
+        plugin.getLogger().info("Scoreboard configuration reloaded with proper color support");
     }
     
     /**

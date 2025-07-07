@@ -211,10 +211,12 @@ public class DuelManager {
                 }
                 
                 if (countdown > 0) {
-                    // Send countdown message
-                    String message = ChatColor.YELLOW + "Duel starting in " + ChatColor.RED + countdown + ChatColor.YELLOW + "...";
-                    challenger.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
-                    target.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
+                    // Send countdown message with proper title
+                    String countdownText = ChatColor.RED + "" + ChatColor.BOLD + countdown;
+                    String subtitle = ChatColor.YELLOW + "Duel starting in " + countdown + "...";
+                    
+                    challenger.sendTitle(countdownText, subtitle, 0, 20, 0);
+                    target.sendTitle(countdownText, subtitle, 0, 20, 0);
                     
                     // Play note block sound
                     challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
@@ -223,8 +225,11 @@ public class DuelManager {
                     countdown--;
                 } else {
                     // Start the duel
-                    challenger.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Duel has begun!", 0, 40, 10);
-                    target.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Duel has begun!", 0, 40, 10);
+                    String fightTitle = ChatColor.GREEN + "" + ChatColor.BOLD + "FIGHT!";
+                    String fightSubtitle = ChatColor.YELLOW + "Duel has begun!";
+                    
+                    challenger.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
+                    target.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
                     
                     // Play start sound
                     challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
@@ -287,10 +292,12 @@ public class DuelManager {
                 }
                 
                 if (countdown > 0) {
-                    // Send countdown message
-                    String message = ChatColor.YELLOW + "Round 1 starting in " + ChatColor.RED + countdown + ChatColor.YELLOW + "...";
-                    challenger.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
-                    target.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
+                    // Send countdown message with proper title
+                    String countdownText = ChatColor.RED + "" + ChatColor.BOLD + countdown;
+                    String subtitle = ChatColor.YELLOW + "Round 1 starting in " + countdown + "...";
+                    
+                    challenger.sendTitle(countdownText, subtitle, 0, 20, 0);
+                    target.sendTitle(countdownText, subtitle, 0, 20, 0);
                     
                     // Play note block sound
                     challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
@@ -299,8 +306,11 @@ public class DuelManager {
                     countdown--;
                 } else {
                     // Start the rounds duel
-                    challenger.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round 1 - First to " + targetRounds + "!", 0, 40, 10);
-                    target.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round 1 - First to " + targetRounds + "!", 0, 40, 10);
+                    String fightTitle = ChatColor.GREEN + "" + ChatColor.BOLD + "FIGHT!";
+                    String fightSubtitle = ChatColor.YELLOW + "Round 1 - First to " + targetRounds + "!";
+                    
+                    challenger.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
+                    target.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
                     
                     // Play start sound
                     challenger.playSound(challenger.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
@@ -323,9 +333,9 @@ public class DuelManager {
         activeDuels.put(challenger.getUniqueId(), duel);
         activeDuels.put(target.getUniqueId(), duel);
         
-        // Prepare players
-        preparePlayer(challenger, kit);
-        preparePlayer(target, kit);
+        // Prepare players with SAME kit settings
+        preparePlayer(challenger, kit, challenger.getUniqueId());
+        preparePlayer(target, kit, challenger.getUniqueId()); // Use challenger's kit settings for both
         
         // Start arena bounds checking
         startArenaBoundsChecking(challenger, arena);
@@ -334,8 +344,6 @@ public class DuelManager {
         // Start health display if enabled
         if (plugin.getKitManager().getKitHealthIndicators(challenger.getUniqueId(), kit.getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(challenger);
-        }
-        if (plugin.getKitManager().getKitHealthIndicators(target.getUniqueId(), kit.getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(target);
         }
         
@@ -358,9 +366,9 @@ public class DuelManager {
         activeRoundsDuels.put(challenger.getUniqueId(), roundsDuel);
         activeRoundsDuels.put(target.getUniqueId(), roundsDuel);
         
-        // Prepare players
-        preparePlayer(challenger, kit);
-        preparePlayer(target, kit);
+        // Prepare players with SAME kit settings
+        preparePlayer(challenger, kit, challenger.getUniqueId());
+        preparePlayer(target, kit, challenger.getUniqueId()); // Use challenger's kit settings for both
         
         // Start arena bounds checking
         startArenaBoundsChecking(challenger, arena);
@@ -369,8 +377,6 @@ public class DuelManager {
         // Start health display if enabled
         if (plugin.getKitManager().getKitHealthIndicators(challenger.getUniqueId(), kit.getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(challenger);
-        }
-        if (plugin.getKitManager().getKitHealthIndicators(target.getUniqueId(), kit.getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(target);
         }
         
@@ -588,15 +594,13 @@ public class DuelManager {
         player1.teleport(roundsDuel.getArena().getSpawn1());
         player2.teleport(roundsDuel.getArena().getSpawn2());
         
-        // Prepare players for next round
-        preparePlayer(player1, roundsDuel.getKit());
-        preparePlayer(player2, roundsDuel.getKit());
+        // Prepare players for next round with SAME kit settings
+        preparePlayer(player1, roundsDuel.getKit(), roundsDuel.getPlayer1().getUniqueId());
+        preparePlayer(player2, roundsDuel.getKit(), roundsDuel.getPlayer1().getUniqueId());
         
         // Restart health display if enabled
-        if (plugin.getKitManager().getKitHealthIndicators(player1.getUniqueId(), roundsDuel.getKit().getName())) {
+        if (plugin.getKitManager().getKitHealthIndicators(roundsDuel.getPlayer1().getUniqueId(), roundsDuel.getKit().getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(player1);
-        }
-        if (plugin.getKitManager().getKitHealthIndicators(player2.getUniqueId(), roundsDuel.getKit().getName())) {
             plugin.getHealthDisplayManager().startHealthDisplay(player2);
         }
         
@@ -625,9 +629,11 @@ public class DuelManager {
                 }
                 
                 if (countdown > 0) {
-                    String message = ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + " in " + ChatColor.RED + countdown + ChatColor.YELLOW + "...";
-                    player1.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
-                    player2.sendTitle(ChatColor.RED + String.valueOf(countdown), message, 0, 20, 0);
+                    String countdownText = ChatColor.RED + "" + ChatColor.BOLD + countdown;
+                    String subtitle = ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + " in " + countdown + "...";
+                    
+                    player1.sendTitle(countdownText, subtitle, 0, 20, 0);
+                    player2.sendTitle(countdownText, subtitle, 0, 20, 0);
                     
                     // Play note block sound
                     player1.playSound(player1.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
@@ -635,8 +641,11 @@ public class DuelManager {
                     
                     countdown--;
                 } else {
-                    player1.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + "!", 0, 40, 10);
-                    player2.sendTitle(ChatColor.GREEN + "FIGHT!", ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + "!", 0, 40, 10);
+                    String fightTitle = ChatColor.GREEN + "" + ChatColor.BOLD + "FIGHT!";
+                    String fightSubtitle = ChatColor.YELLOW + "Round " + roundsDuel.getCurrentRound() + "!";
+                    
+                    player1.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
+                    player2.sendTitle(fightTitle, fightSubtitle, 0, 40, 10);
                     
                     // Play start sound
                     player1.playSound(player1.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 2.0f);
@@ -713,15 +722,15 @@ public class DuelManager {
         player.updateInventory();
     }
     
-    private void preparePlayer(Player player, Kit kit) {
+    private void preparePlayer(Player player, Kit kit, UUID kitOwnerUUID) {
         // Clear player
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         
-        // Get kit settings
-        double kitHearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kit.getName());
-        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(player.getUniqueId(), kit.getName());
+        // Get kit settings from the kit owner (challenger)
+        double kitHearts = plugin.getKitManager().getKitHearts(kitOwnerUUID, kit.getName());
+        boolean naturalRegen = plugin.getKitManager().getKitNaturalRegen(kitOwnerUUID, kit.getName());
         
         // Set health based on kit settings (convert hearts to health points)
         double maxHealth = kitHearts * 2.0; // 1 heart = 2 health points

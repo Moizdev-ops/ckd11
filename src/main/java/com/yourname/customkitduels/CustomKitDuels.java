@@ -3,6 +3,7 @@ package com.yourname.customkitduels;
 import com.yourname.customkitduels.commands.CommandHandler;
 import com.yourname.customkitduels.managers.*;
 import com.yourname.customkitduels.listeners.PlayerListener;
+import com.yourname.customkitduels.utils.FontUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -23,7 +24,7 @@ public class CustomKitDuels extends JavaPlugin {
         
         // Fancy startup messages
         getLogger().info("§c╔══════════════════════════════════════╗");
-        getLogger().info("§c║           §fCustomKit Duels          §c║");
+        getLogger().info("§c║           §f" + FontUtils.toSmallCaps("CustomKit Duels") + "          §c║");
         getLogger().info("§c║              §7v1.0.0                §c║");
         getLogger().info("§c╠══════════════════════════════════════╣");
         getLogger().info("§c║ §fStarting plugin initialization...  §c║");
@@ -33,10 +34,10 @@ public class CustomKitDuels extends JavaPlugin {
         saveDefaultConfig();
         
         // Initialize managers
-        getLogger().info("§c[CustomKit] §7Loading category manager...");
+        getLogger().info("§c[" + FontUtils.toSmallCaps("CustomKit") + "] §7" + FontUtils.toSmallCaps("Loading category manager..."));
         categoryManager = new CategoryManager(this);
         
-        getLogger().info("§c[CustomKit] §7Loading kit manager...");
+        getLogger().info("§c[" + FontUtils.toSmallCaps("CustomKit") + "] §7" + FontUtils.toSmallCaps("Loading kit manager..."));
         kitManager = new KitManager(this);
         
         getLogger().info("§c[CustomKit] §7Loading arena manager...");
@@ -71,17 +72,17 @@ public class CustomKitDuels extends JavaPlugin {
         
         // Final startup messages
         getLogger().info("§c╔══════════════════════════════════════╗");
-        getLogger().info("§c║        §aSuccessfully Enabled!       §c║");
+        getLogger().info("§c║        §a" + FontUtils.toSmallCaps("Successfully Enabled!") + "       §c║");
         getLogger().info("§c║                                      §c║");
-        getLogger().info("§c║ §fFeatures:                          §c║");
-        getLogger().info("§c║ §7• Enhanced kit creation system     §c║");
-        getLogger().info("§c║ §7• Advanced enchantment editor      §c║");
-        getLogger().info("§c║ §7• Stackable item count editor      §c║");
-        getLogger().info("§c║ §7• Rounds-based duel system         §c║");
-        getLogger().info("§c║ §7• Arena regeneration support       §c║");
-        getLogger().info("§c║ §7• Real-time health indicators      §c║");
+        getLogger().info("§c║ §f" + FontUtils.toSmallCaps("Features:") + "                          §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Enhanced kit creation system") + "     §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Advanced enchantment editor") + "      §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Stackable item count editor") + "      §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Rounds-based duel system") + "         §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Arena regeneration support") + "       §c║");
+        getLogger().info("§c║ §7• " + FontUtils.toSmallCaps("Real-time health indicators") + "      §c║");
         getLogger().info("§c║                                      §c║");
-        getLogger().info("§c║        §d❤ made with love by moiz ❤   §c║");
+        getLogger().info("§c║        §d❤ " + FontUtils.toSmallCaps("made with love by moiz") + " ❤   §c║");
         getLogger().info("§c╚══════════════════════════════════════╝");
     }
     
@@ -89,7 +90,7 @@ public class CustomKitDuels extends JavaPlugin {
     public void onDisable() {
         // Fancy shutdown messages
         getLogger().info("§c╔══════════════════════════════════════╗");
-        getLogger().info("§c║          §fShutting Down...          §c║");
+        getLogger().info("§c║          §f" + FontUtils.toSmallCaps("Shutting Down...") + "          §c║");
         getLogger().info("§c╚══════════════════════════════════════╝");
         
         // Clean up all managers
@@ -109,10 +110,10 @@ public class CustomKitDuels extends JavaPlugin {
         }
         
         getLogger().info("§c╔══════════════════════════════════════╗");
-        getLogger().info("§c║         §cSuccessfully Disabled      §c║");
+        getLogger().info("§c║         §c" + FontUtils.toSmallCaps("Successfully Disabled") + "      §c║");
         getLogger().info("§c║                                      §c║");
-        getLogger().info("§c║      §dthanks for using customkit!   §c║");
-        getLogger().info("§c║        §d❤ made with love by moiz ❤   §c║");
+        getLogger().info("§c║      §d" + FontUtils.toSmallCaps("thanks for using customkit!") + "   §c║");
+        getLogger().info("§c║        §d❤ " + FontUtils.toSmallCaps("made with love by moiz") + " ❤   §c║");
         getLogger().info("§c╚══════════════════════════════════════╝");
     }
     
@@ -153,6 +154,6 @@ public class CustomKitDuels extends JavaPlugin {
         arenaManager.loadArenas();
         categoryManager.reloadCategories();
         scoreboardManager.reloadConfig();
-        getLogger().info("§c[CustomKit] §aconfiguration reloaded!");
+        getLogger().info("§c[" + FontUtils.toSmallCaps("CustomKit") + "] §a" + FontUtils.toSmallCaps("configuration reloaded!"));
     }
 }

@@ -9,6 +9,7 @@ import com.yourname.customkitduels.gui.CategoryEditorGUI;
 import com.yourname.customkitduels.gui.KitEditorGUI;
 import com.yourname.customkitduels.gui.KitListGUI;
 import com.yourname.customkitduels.gui.KitSelectorGUI;
+import com.yourname.customkitduels.utils.FontUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -66,33 +67,33 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
     }
     
     private void sendHelpMessage(CommandSender sender) {
-        sender.sendMessage(ChatColor.RED + "=== customkit commands ===");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit create - create a new kit");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit edit - edit your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit delete <name> - delete a kit");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit list - list your kits");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit duel <player> - challenge a player");
-        sender.sendMessage(ChatColor.YELLOW + "/customkit accept - accept a duel request");
+        sender.sendMessage(ChatColor.RED + "=== " + FontUtils.toSmallCaps("customkit commands") + " ===");
+        sender.sendMessage(ChatColor.YELLOW + "/customkit create - " + FontUtils.toSmallCaps("create a new kit"));
+        sender.sendMessage(ChatColor.YELLOW + "/customkit edit - " + FontUtils.toSmallCaps("edit your kits"));
+        sender.sendMessage(ChatColor.YELLOW + "/customkit delete <name> - " + FontUtils.toSmallCaps("delete a kit"));
+        sender.sendMessage(ChatColor.YELLOW + "/customkit list - " + FontUtils.toSmallCaps("list your kits"));
+        sender.sendMessage(ChatColor.YELLOW + "/customkit duel <player> - " + FontUtils.toSmallCaps("challenge a player"));
+        sender.sendMessage(ChatColor.YELLOW + "/customkit accept - " + FontUtils.toSmallCaps("accept a duel request"));
         if (sender.hasPermission("customkitduels.admin")) {
-            sender.sendMessage(ChatColor.AQUA + "admin commands:");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit arena create <name> - create new arena");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit arena editor - open arena editor gui");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit arena list - list all arenas");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit arena delete <name> - delete an arena");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit setspawn - set global spawn point");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit editcategory <category> - edit item category");
-            sender.sendMessage(ChatColor.YELLOW + "/customkit reload - reload config");
+            sender.sendMessage(ChatColor.AQUA + FontUtils.toSmallCaps("admin commands:"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit arena create <name> - " + FontUtils.toSmallCaps("create new arena"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit arena editor - " + FontUtils.toSmallCaps("open arena editor gui"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit arena list - " + FontUtils.toSmallCaps("list all arenas"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit arena delete <name> - " + FontUtils.toSmallCaps("delete an arena"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit setspawn - " + FontUtils.toSmallCaps("set global spawn point"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit editcategory <category> - " + FontUtils.toSmallCaps("edit item category"));
+            sender.sendMessage(ChatColor.YELLOW + "/customkit reload - " + FontUtils.toSmallCaps("reload config"));
         }
     }
     
     private boolean handleCreateKit(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "only players can create kits.");
+            sender.sendMessage(ChatColor.RED + FontUtils.toSmallCaps("only players can create kits."));
             return true;
         }
         
         if (!sender.hasPermission("customkitduels.use")) {
-            sender.sendMessage(ChatColor.RED + "you don't have permission to use this command.");
+            sender.sendMessage(ChatColor.RED + FontUtils.toSmallCaps("you don't have permission to use this command."));
             return true;
         }
         
@@ -100,13 +101,13 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         
         // Generate next kit name
         List<Kit> playerKits = plugin.getKitManager().getPlayerKits(player.getUniqueId());
-        String kitName = "kit " + (playerKits.size() + 1);
+        String kitName = FontUtils.toSmallCaps("kit ") + (playerKits.size() + 1);
         
         // Check if kit already exists (shouldn't happen but just in case)
         int counter = playerKits.size() + 1;
         while (plugin.getKitManager().hasKit(player.getUniqueId(), kitName)) {
             counter++;
-            kitName = "kit " + counter;
+            kitName = FontUtils.toSmallCaps("kit ") + counter;
         }
         
         new KitEditorGUI(plugin, player, kitName, true).open();

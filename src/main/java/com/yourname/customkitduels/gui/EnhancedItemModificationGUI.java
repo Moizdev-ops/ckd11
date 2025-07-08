@@ -33,6 +33,19 @@ public class EnhancedItemModificationGUI implements Listener {
     private boolean isNavigating = false;
     private int currentPage = 0;
     
+    // Store enchantment-slot mapping for proper click handling
+    private final Map<Integer, EnchantmentData> slotToEnchantment = new HashMap<>();
+    
+    private static class EnchantmentData {
+        final Enchantment enchantment;
+        final int level;
+        
+        EnchantmentData(Enchantment enchantment, int level) {
+            this.enchantment = enchantment;
+            this.level = level;
+        }
+    }
+    
     public EnhancedItemModificationGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot, ItemStack targetItem) {
         this.plugin = plugin;
         this.player = player;
@@ -49,6 +62,7 @@ public class EnhancedItemModificationGUI implements Listener {
     
     private void setupGUI() {
         gui.clear();
+        slotToEnchantment.clear();
         
         // Display the item being modified
         gui.setItem(4, targetItem.clone());
@@ -128,64 +142,42 @@ public class EnhancedItemModificationGUI implements Listener {
             return;
         }
         
-        int slot = 9;
-        int enchantmentsPerPage = 6; // Show 6 enchantment types per page (better spacing)
-        int startIndex = currentPage * enchantmentsPerPage;
-        int endIndex = Math.min(startIndex + enchantmentsPerPage, relevantEnchants.size());
+        // FIXED: Layout like the image - 2 enchantments per row, with Mending in bottom row
+        int slot = 9; // Start from row 1
         
-        for (int enchantIndex = startIndex; enchantIndex < endIndex; enchantIndex++) {
-            Enchantment enchant = relevantEnchants.get(enchantIndex);
+        for (Enchantment enchant : relevantEnchants) {
+            if (enchant == Enchantment.MENDING) {
+                continue; // Skip Mending for now, we'll add it to bottom row
+            }
             
-            // Create books for each level of this enchantment
-            for (int level = 1; level <= enchant.getMaxLevel() && slot < 44; level++) {
-                ItemStack enchantBook = new ItemStack(Material.ENCHANTED_BOOK);
-                enchantBook.setAmount(level); // Stack size shows level
+            // Create enchantment books for each level
+            for (int level = 1; level <= enchant.getMaxLevel(); level++) {
+                if (slot >= 36) break; // Don't go into bottom control area
                 
-                ItemMeta meta = enchantBook.getItemMeta();
-                String enchantName = formatEnchantmentName(enchant.getKey().getKey());
-                meta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps(enchantName + " " + level));
-                
-                int currentLevel = targetItem.getEnchantmentLevel(enchant);
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + FontUtils.toSmallCaps("current level: ") + (currentLevel > 0 ? currentLevel : FontUtils.toSmallCaps("none")));
-                lore.add(ChatColor.YELLOW + FontUtils.toSmallCaps("click to apply ") + enchantName + " " + level);
-                
-                if (currentLevel == level) {
-                    lore.add(ChatColor.GREEN + "✓ " + FontUtils.toSmallCaps("currently applied"));
+                // Skip slots that would put us in the 3rd column (we want 2 per row)
+                if ((slot - 9) % 9 >= 2) {
+                    slot = ((slot / 9) + 1) * 9; // Move to next row
+                    if (slot >= 36) break;
                 }
                 
-                meta.setLore(lore);
-                enchantBook.setItemMeta(meta);
-                
+                ItemStack enchantBook = createEnchantmentBook(enchant, level);
                 gui.setItem(slot, enchantBook);
+                
+                // Store mapping for click handling
+                slotToEnchantment.put(slot, new EnchantmentData(enchant, level));
+                
                 slot++;
             }
-            
-            // FIXED: Only add gap if we're not at the end of a row and not going to start of next row
-            if (slot % 9 != 0 && slot < 44 && enchantIndex < endIndex - 1) {
-                slot++; // Add gap between enchantment types
-            }
         }
         
-        // Navigation buttons
-        if (currentPage > 0) {
-            ItemStack prevPage = new ItemStack(Material.ARROW);
-            ItemMeta prevMeta = prevPage.getItemMeta();
-            prevMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("previous page"));
-            prevPage.setItemMeta(prevMeta);
-            gui.setItem(46, prevPage);
+        // Add Mending in the bottom row (slots 46-52)
+        if (relevantEnchants.contains(Enchantment.MENDING)) {
+            ItemStack mendingBook = createEnchantmentBook(Enchantment.MENDING, 1);
+            gui.setItem(46, mendingBook);
+            slotToEnchantment.put(46, new EnchantmentData(Enchantment.MENDING, 1));
         }
         
-        // FIXED: Only show next page if there are actually more enchantments
-        if (endIndex < relevantEnchants.size()) {
-            ItemStack nextPage = new ItemStack(Material.ARROW);
-            ItemMeta nextMeta = nextPage.getItemMeta();
-            nextMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("next page"));
-            nextPage.setItemMeta(nextMeta);
-            gui.setItem(52, nextPage);
-        }
-        
-        // Durability button - opens anvil GUI
+        // Durability button
         ItemStack durabilityItem = new ItemStack(Material.ANVIL);
         ItemMeta durabilityMeta = durabilityItem.getItemMeta();
         durabilityMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change durability"));
@@ -206,6 +198,73 @@ public class EnhancedItemModificationGUI implements Listener {
         ));
         renameItem.setItemMeta(renameMeta);
         gui.setItem(48, renameItem);
+    }
+    
+    private ItemStack createEnchantmentBook(Enchantment enchant, int level) {
+        ItemStack enchantBook = new ItemStack(Material.ENCHANTED_BOOK);
+        ItemMeta meta = enchantBook.getItemMeta();
+        
+        String enchantName = formatEnchantmentName(enchant.getKey().getKey());
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps(enchantName + " " + level));
+        
+        int currentLevel = targetItem.getEnchantmentLevel(enchant);
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + FontUtils.toSmallCaps("current level: ") + (currentLevel > 0 ? currentLevel : FontUtils.toSmallCaps("none")));
+        lore.add(ChatColor.YELLOW + FontUtils.toSmallCaps("click to apply ") + enchantName + " " + level);
+        
+        if (currentLevel == level) {
+            lore.add(ChatColor.GREEN + "✓ " + FontUtils.toSmallCaps("currently applied"));
+        }
+        
+        // Check for conflicts
+        if (hasConflictingEnchantments(enchant)) {
+            lore.add(ChatColor.RED + "⚠ " + FontUtils.toSmallCaps("will remove conflicting enchants"));
+        }
+        
+        meta.setLore(lore);
+        enchantBook.setItemMeta(meta);
+        
+        return enchantBook;
+    }
+    
+    private boolean hasConflictingEnchantments(Enchantment enchantment) {
+        Map<Enchantment, Integer> currentEnchants = targetItem.getEnchantments();
+        
+        for (Enchantment current : currentEnchants.keySet()) {
+            if (areEnchantmentsConflicting(enchantment, current)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean areEnchantmentsConflicting(Enchantment ench1, Enchantment ench2) {
+        if (ench1.equals(ench2)) return false;
+        
+        // Define conflict groups
+        Set<Enchantment> protectionEnchants = new HashSet<>(Arrays.asList(
+            Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, 
+            Enchantment.BLAST_PROTECTION, Enchantment.PROJECTILE_PROTECTION
+        ));
+        
+        Set<Enchantment> damageEnchants = new HashSet<>(Arrays.asList(
+            Enchantment.SHARPNESS, Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS
+        ));
+        
+        Set<Enchantment> fortuneSilkTouch = new HashSet<>(Arrays.asList(
+            Enchantment.FORTUNE, Enchantment.SILK_TOUCH
+        ));
+        
+        Set<Enchantment> infinityMending = new HashSet<>(Arrays.asList(
+            Enchantment.INFINITY, Enchantment.MENDING
+        ));
+        
+        // Check all conflict groups
+        return (protectionEnchants.contains(ench1) && protectionEnchants.contains(ench2)) ||
+               (damageEnchants.contains(ench1) && damageEnchants.contains(ench2)) ||
+               (fortuneSilkTouch.contains(ench1) && fortuneSilkTouch.contains(ench2)) ||
+               (infinityMending.contains(ench1) && infinityMending.contains(ench2));
     }
     
     private void setupBasicItemGUI() {
@@ -430,20 +489,10 @@ public class EnhancedItemModificationGUI implements Listener {
             return;
         }
         
-        if (slot == 46) { // Previous page
-            if (currentPage > 0) {
-                currentPage--;
-                setupGUI();
-            }
-            return;
-        }
-        
-        if (slot == 52) { // Next page
-            List<Enchantment> relevantEnchants = getRelevantEnchantments(targetItem.getType());
-            if ((currentPage + 1) * 6 < relevantEnchants.size()) {
-                currentPage++;
-                setupGUI();
-            }
+        // Check if it's an enchantment slot
+        EnchantmentData enchantData = slotToEnchantment.get(slot);
+        if (enchantData != null) {
+            applyEnchantment(enchantData.enchantment, enchantData.level);
             return;
         }
         
@@ -451,6 +500,35 @@ public class EnhancedItemModificationGUI implements Listener {
             handleStackableItemClick(slot);
         } else if (isEnchantableItem(targetItem)) {
             handleEnchantableItemClick(slot);
+        }
+    }
+    
+    private void applyEnchantment(Enchantment enchantment, int level) {
+        plugin.getLogger().info("[DEBUG] Applying enchantment " + enchantment.getKey().getKey() + " level " + level + " to item");
+        
+        // Remove conflicting enchantments
+        removeConflictingEnchantments(enchantment);
+        
+        // Apply the enchantment
+        targetItem.addUnsafeEnchantment(enchantment, level);
+        parentGUI.setSlotItem(targetSlot, targetItem);
+        
+        String enchantName = formatEnchantmentName(enchantment.getKey().getKey());
+        player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("applied ") + enchantName + " " + level + "!");
+        
+        // Refresh GUI to show updated enchantments
+        setupGUI();
+    }
+    
+    private void removeConflictingEnchantments(Enchantment newEnchantment) {
+        Map<Enchantment, Integer> currentEnchants = new HashMap<>(targetItem.getEnchantments());
+        
+        for (Enchantment current : currentEnchants.keySet()) {
+            if (areEnchantmentsConflicting(newEnchantment, current)) {
+                targetItem.removeEnchantment(current);
+                String enchantName = formatEnchantmentName(current.getKey().getKey());
+                player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("removed conflicting ") + enchantName);
+            }
         }
     }
     
@@ -473,32 +551,7 @@ public class EnhancedItemModificationGUI implements Listener {
     }
     
     private void handleEnchantableItemClick(int slot) {
-        if (slot >= 9 && slot < 45) {
-            ItemStack clickedItem = gui.getItem(slot);
-            if (clickedItem != null && clickedItem.getType() == Material.ENCHANTED_BOOK) {
-                // FIXED: Extract enchantment info from the item properly
-                String displayName = clickedItem.getItemMeta().getDisplayName();
-                int level = clickedItem.getAmount();
-                
-                // Find the enchantment based on display name
-                for (Enchantment enchant : getRelevantEnchantments(targetItem.getType())) {
-                    String enchantName = formatEnchantmentName(enchant.getKey().getKey());
-                    if (displayName.toLowerCase().contains(enchantName.toLowerCase())) {
-                        // Remove conflicting enchantments
-                        removeConflictingEnchantments(enchant);
-                        
-                        // Apply the enchantment
-                        targetItem.addUnsafeEnchantment(enchant, level);
-                        parentGUI.setSlotItem(targetSlot, targetItem);
-                        player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("applied ") + enchantName + " " + level + "!");
-                        
-                        // Refresh GUI to show updated enchantments
-                        setupGUI();
-                        return;
-                    }
-                }
-            }
-        } else if (slot == 47) {
+        if (slot == 47) {
             // Durability editor - open anvil GUI
             openDurabilityAnvilGUI();
         } else if (slot == 48) {
@@ -515,61 +568,6 @@ public class EnhancedItemModificationGUI implements Listener {
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             new DurabilityAnvilGUI(plugin, player, parentGUI, targetSlot, targetItem).open();
         }, 1L);
-    }
-    
-    private void removeConflictingEnchantments(Enchantment newEnchantment) {
-        // Protection enchants conflict
-        if (newEnchantment == Enchantment.PROTECTION || newEnchantment == Enchantment.FIRE_PROTECTION ||
-            newEnchantment == Enchantment.BLAST_PROTECTION || newEnchantment == Enchantment.PROJECTILE_PROTECTION) {
-            targetItem.removeEnchantment(Enchantment.PROTECTION);
-            targetItem.removeEnchantment(Enchantment.FIRE_PROTECTION);
-            targetItem.removeEnchantment(Enchantment.BLAST_PROTECTION);
-            targetItem.removeEnchantment(Enchantment.PROJECTILE_PROTECTION);
-        }
-        
-        // Damage enchants conflict
-        if (newEnchantment == Enchantment.SHARPNESS || newEnchantment == Enchantment.SMITE ||
-            newEnchantment == Enchantment.BANE_OF_ARTHROPODS) {
-            targetItem.removeEnchantment(Enchantment.SHARPNESS);
-            targetItem.removeEnchantment(Enchantment.SMITE);
-            targetItem.removeEnchantment(Enchantment.BANE_OF_ARTHROPODS);
-        }
-        
-        // Fortune and Silk Touch conflict
-        if (newEnchantment == Enchantment.FORTUNE || newEnchantment == Enchantment.SILK_TOUCH) {
-            targetItem.removeEnchantment(Enchantment.FORTUNE);
-            targetItem.removeEnchantment(Enchantment.SILK_TOUCH);
-        }
-        
-        // Infinity and Mending conflict
-        if (newEnchantment == Enchantment.INFINITY || newEnchantment == Enchantment.MENDING) {
-            targetItem.removeEnchantment(Enchantment.INFINITY);
-            targetItem.removeEnchantment(Enchantment.MENDING);
-        }
-        
-        // Depth Strider and Frost Walker conflict
-        if (newEnchantment == Enchantment.DEPTH_STRIDER || newEnchantment == Enchantment.FROST_WALKER) {
-            targetItem.removeEnchantment(Enchantment.DEPTH_STRIDER);
-            targetItem.removeEnchantment(Enchantment.FROST_WALKER);
-        }
-        
-        // Multishot and Piercing conflict
-        if (newEnchantment == Enchantment.MULTISHOT || newEnchantment == Enchantment.PIERCING) {
-            targetItem.removeEnchantment(Enchantment.MULTISHOT);
-            targetItem.removeEnchantment(Enchantment.PIERCING);
-        }
-        
-        // Loyalty and Riptide conflict
-        if (newEnchantment == Enchantment.LOYALTY || newEnchantment == Enchantment.RIPTIDE) {
-            targetItem.removeEnchantment(Enchantment.LOYALTY);
-            targetItem.removeEnchantment(Enchantment.RIPTIDE);
-        }
-        
-        // Channeling and Riptide conflict
-        if (newEnchantment == Enchantment.CHANNELING || newEnchantment == Enchantment.RIPTIDE) {
-            targetItem.removeEnchantment(Enchantment.CHANNELING);
-            targetItem.removeEnchantment(Enchantment.RIPTIDE);
-        }
     }
     
     private void requestCustomAmount() {
@@ -679,6 +677,7 @@ public class EnhancedItemModificationGUI implements Listener {
         isActive = false;
         activeGuis.remove(player.getUniqueId());
         waitingForCustomAmount.remove(player.getUniqueId());
+        slotToEnchantment.clear();
         InventoryClickEvent.getHandlerList().unregister(this);
         InventoryCloseEvent.getHandlerList().unregister(this);
         AsyncPlayerChatEvent.getHandlerList().unregister(this);

@@ -2,6 +2,7 @@ package com.yourname.customkitduels.gui;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Kit;
+import com.yourname.customkitduels.utils.FontUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,7 +31,7 @@ public class KitListGUI implements Listener {
         this.plugin = plugin;
         this.player = player;
         this.playerKits = plugin.getKitManager().getPlayerKits(player.getUniqueId());
-        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + "edit your kits");
+        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + FontUtils.toSmallCaps("edit your kits"));
         
         plugin.getLogger().info("[DEBUG] Creating KitListGUI for player " + player.getName());
         
@@ -45,10 +46,10 @@ public class KitListGUI implements Listener {
             // No kits message
             ItemStack noKits = new ItemStack(Material.BARRIER);
             ItemMeta noKitsMeta = noKits.getItemMeta();
-            noKitsMeta.setDisplayName(ChatColor.RED + "no kits found");
+            noKitsMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("no kits found"));
             noKitsMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "you don't have any kits!",
-                ChatColor.YELLOW + "create one with /customkit create"
+                ChatColor.GRAY + FontUtils.toSmallCaps("you don't have any kits!"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("create one with /customkit create")
             ));
             noKits.setItemMeta(noKitsMeta);
             gui.setItem(22, noKits);
@@ -61,7 +62,7 @@ public class KitListGUI implements Listener {
             
             ItemStack kitItem = new ItemStack(Material.BOOK);
             ItemMeta kitMeta = kitItem.getItemMeta();
-            kitMeta.setDisplayName(ChatColor.RED + kit.getName());
+            kitMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps(kit.getName()));
             
             // Get kit settings for display
             double hearts = plugin.getKitManager().getKitHearts(player.getUniqueId(), kit.getName());
@@ -69,11 +70,11 @@ public class KitListGUI implements Listener {
             boolean healthIndicators = plugin.getKitManager().getKitHealthIndicators(player.getUniqueId(), kit.getName());
             
             kitMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "hearts: " + ChatColor.WHITE + hearts,
-                ChatColor.GRAY + "natural regen: " + (naturalRegen ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled"),
-                ChatColor.GRAY + "health indicators: " + (healthIndicators ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled"),
+                ChatColor.GRAY + FontUtils.toSmallCaps("hearts: ") + ChatColor.WHITE + hearts,
+                ChatColor.GRAY + FontUtils.toSmallCaps("natural regen: ") + (naturalRegen ? ChatColor.GREEN + FontUtils.toSmallCaps("enabled") : ChatColor.RED + FontUtils.toSmallCaps("disabled")),
+                ChatColor.GRAY + FontUtils.toSmallCaps("health indicators: ") + (healthIndicators ? ChatColor.GREEN + FontUtils.toSmallCaps("enabled") : ChatColor.RED + FontUtils.toSmallCaps("disabled")),
                 "",
-                ChatColor.YELLOW + "click to edit this kit"
+                ChatColor.YELLOW + FontUtils.toSmallCaps("click to edit this kit")
             ));
             kitItem.setItemMeta(kitMeta);
             gui.setItem(i, kitItem);
@@ -82,8 +83,8 @@ public class KitListGUI implements Listener {
         // Back button
         ItemStack backButton = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "close");
-        backMeta.setLore(Arrays.asList(ChatColor.GRAY + "close kit editor"));
+        backMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("close"));
+        backMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("close kit editor")));
         backButton.setItemMeta(backMeta);
         gui.setItem(53, backButton);
     }

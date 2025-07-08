@@ -2,6 +2,7 @@ package com.yourname.customkitduels.gui;
 
 import com.yourname.customkitduels.CustomKitDuels;
 import com.yourname.customkitduels.data.Kit;
+import com.yourname.customkitduels.utils.FontUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -42,7 +43,7 @@ public class KitEditorGUI implements Listener {
         this.player = player;
         this.kitName = kitName;
         this.isNewKit = isNewKit;
-        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + "editing " + kitName);
+        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + FontUtils.toSmallCaps("editing ") + kitName);
         this.kitContents = new ItemStack[36];
         this.kitArmor = new ItemStack[4];
         this.offhandItem = null;
@@ -98,10 +99,10 @@ public class KitEditorGUI implements Listener {
         } else {
             ItemStack glassPane = new ItemStack(Material.RED_STAINED_GLASS_PANE);
             ItemMeta meta = glassPane.getItemMeta();
-            meta.setDisplayName(ChatColor.RED + "slot #" + (slot + 1));
+            meta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("slot #") + (slot + 1));
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "click to add item",
-                ChatColor.YELLOW + "right-click to modify item"
+                ChatColor.GRAY + FontUtils.toSmallCaps("click to add item"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("right-click to modify item")
             ));
             glassPane.setItemMeta(meta);
             gui.setItem(slot, glassPane);
@@ -117,10 +118,10 @@ public class KitEditorGUI implements Listener {
         } else {
             ItemStack glassPane = new ItemStack(Material.RED_STAINED_GLASS_PANE);
             ItemMeta meta = glassPane.getItemMeta();
-            meta.setDisplayName(ChatColor.RED + armorSlots[armorIndex] + " slot");
+            meta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps(armorSlots[armorIndex] + " slot"));
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "click to add armor",
-                ChatColor.YELLOW + "right-click to modify armor"
+                ChatColor.GRAY + FontUtils.toSmallCaps("click to add armor"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("right-click to modify armor")
             ));
             glassPane.setItemMeta(meta);
             gui.setItem(guiSlot, glassPane);
@@ -133,10 +134,10 @@ public class KitEditorGUI implements Listener {
         } else {
             ItemStack offhandPane = new ItemStack(Material.RED_STAINED_GLASS_PANE);
             ItemMeta offhandMeta = offhandPane.getItemMeta();
-            offhandMeta.setDisplayName(ChatColor.RED + "offhand slot");
+            offhandMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("offhand slot"));
             offhandMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "click to add item",
-                ChatColor.YELLOW + "right-click to modify item"
+                ChatColor.GRAY + FontUtils.toSmallCaps("click to add item"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("right-click to modify item")
             ));
             offhandPane.setItemMeta(offhandMeta);
             gui.setItem(40, offhandPane);
@@ -146,31 +147,31 @@ public class KitEditorGUI implements Listener {
     private void setupControlButtons() {
         ItemStack saveButton = new ItemStack(Material.EMERALD);
         ItemMeta saveMeta = saveButton.getItemMeta();
-        saveMeta.setDisplayName(ChatColor.GREEN + "save kit");
-        saveMeta.setLore(Arrays.asList(ChatColor.GRAY + "save your kit"));
+        saveMeta.setDisplayName(ChatColor.GREEN + FontUtils.toSmallCaps("save kit"));
+        saveMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("save your kit")));
         saveButton.setItemMeta(saveMeta);
         gui.setItem(45, saveButton);
         
         ItemStack cancelButton = new ItemStack(Material.REDSTONE);
         ItemMeta cancelMeta = cancelButton.getItemMeta();
-        cancelMeta.setDisplayName(ChatColor.RED + "cancel");
-        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "close without saving"));
+        cancelMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("cancel"));
+        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("close without saving")));
         cancelButton.setItemMeta(cancelMeta);
         gui.setItem(53, cancelButton);
         
         // Clear button
         ItemStack clearButton = new ItemStack(Material.BARRIER);
         ItemMeta clearMeta = clearButton.getItemMeta();
-        clearMeta.setDisplayName(ChatColor.YELLOW + "clear all");
-        clearMeta.setLore(Arrays.asList(ChatColor.GRAY + "remove all items"));
+        clearMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("clear all"));
+        clearMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("remove all items")));
         clearButton.setItemMeta(clearMeta);
         gui.setItem(49, clearButton);
         
         // Kit Settings button
         ItemStack settingsButton = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsButton.getItemMeta();
-        settingsMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "kit settings");
-        settingsMeta.setLore(Arrays.asList(ChatColor.GRAY + "configure kit options"));
+        settingsMeta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps("kit settings"));
+        settingsMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("configure kit options")));
         settingsButton.setItemMeta(settingsMeta);
         gui.setItem(46, settingsButton);
         
@@ -179,21 +180,21 @@ public class KitEditorGUI implements Listener {
         ItemMeta bulkMeta = bulkButton.getItemMeta();
         
         if (isBulkMode) {
-            bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 bulk mode: active");
+            bulkMeta.setDisplayName(ChatColor.GREEN + "🔥 " + FontUtils.toSmallCaps("bulk mode: active"));
             bulkMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "bulk mode is currently active",
-                ChatColor.YELLOW + "item: " + (bulkItem != null ? bulkItem.getType().name() : "none"),
-                ChatColor.AQUA + "click slots to place this item",
-                ChatColor.RED + "right-click to exit bulk mode",
-                ChatColor.GOLD + "left-click to change bulk item"
+                ChatColor.GRAY + FontUtils.toSmallCaps("bulk mode is currently active"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("item: ") + (bulkItem != null ? bulkItem.getType().name() : FontUtils.toSmallCaps("none")),
+                ChatColor.AQUA + FontUtils.toSmallCaps("click slots to place this item"),
+                ChatColor.RED + FontUtils.toSmallCaps("right-click to exit bulk mode"),
+                ChatColor.GOLD + FontUtils.toSmallCaps("left-click to change bulk item")
             ));
         } else {
-            bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 bulk mode");
+            bulkMeta.setDisplayName(ChatColor.YELLOW + "🔥 " + FontUtils.toSmallCaps("bulk mode"));
             bulkMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "activate bulk mode to quickly",
-                ChatColor.GRAY + "place the same item in multiple slots",
-                ChatColor.GREEN + "click to select bulk item",
-                ChatColor.AQUA + "or shift-click any slot with an item"
+                ChatColor.GRAY + FontUtils.toSmallCaps("activate bulk mode to quickly"),
+                ChatColor.GRAY + FontUtils.toSmallCaps("place the same item in multiple slots"),
+                ChatColor.GREEN + FontUtils.toSmallCaps("click to select bulk item"),
+                ChatColor.AQUA + FontUtils.toSmallCaps("or shift-click any slot with an item")
             ));
         }
         
@@ -282,10 +283,10 @@ public class KitEditorGUI implements Listener {
             if (isBulkMode && bulkItem != null) {
                 if (slot < 36) { // Only main inventory slots for bulk mode
                     setSlotItem(slot, bulkItem.clone());
-                    player.sendMessage(ChatColor.GREEN + "🔥 bulk placed " + bulkItem.getType().name() + " in slot " + (slot + 1) + "!");
+                    player.sendMessage(ChatColor.GREEN + "🔥 " + FontUtils.toSmallCaps("bulk placed ") + bulkItem.getType().name() + FontUtils.toSmallCaps(" in slot ") + (slot + 1) + "!");
                     return;
                 } else {
-                    player.sendMessage(ChatColor.RED + "bulk mode only works for main inventory slots!");
+                    player.sendMessage(ChatColor.RED + FontUtils.toSmallCaps("bulk mode only works for main inventory slots!"));
                     return;
                 }
             }
@@ -331,15 +332,15 @@ public class KitEditorGUI implements Listener {
         isBulkMode = true;
         bulkItem = item.clone();
         setupControlButtons(); // Refresh to show bulk indicator
-        player.sendMessage(ChatColor.GREEN + "🔥 bulk mode activated! click slots to place " + item.getType().name());
-        player.sendMessage(ChatColor.YELLOW + "right-click the green button to exit bulk mode");
+        player.sendMessage(ChatColor.GREEN + "🔥 " + FontUtils.toSmallCaps("bulk mode activated! click slots to place ") + item.getType().name());
+        player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("right-click the green button to exit bulk mode"));
     }
     
     private void exitBulkMode() {
         isBulkMode = false;
         bulkItem = null;
         setupControlButtons(); // Refresh to hide bulk indicator
-        player.sendMessage(ChatColor.YELLOW + "🔥 bulk mode deactivated");
+        player.sendMessage(ChatColor.YELLOW + "🔥 " + FontUtils.toSmallCaps("bulk mode deactivated"));
     }
     
     private void openCategorySelectorForBulk(int slot) {
@@ -479,7 +480,7 @@ public class KitEditorGUI implements Listener {
         offhandItem = null;
         updateOffhandSlot();
         exitBulkMode(); // Exit bulk mode when clearing
-        player.sendMessage(ChatColor.YELLOW + "all slots cleared!");
+        player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("all slots cleared!"));
     }
     
     private void saveKit() {
@@ -494,8 +495,8 @@ public class KitEditorGUI implements Listener {
         plugin.getKitManager().saveKit(player.getUniqueId(), kit);
         
         // Show title message
-        player.sendTitle(ChatColor.GREEN + kitName + " saved!", ChatColor.YELLOW + "successfully saved", 10, 40, 10);
-        player.sendMessage(ChatColor.GREEN + "kit '" + kitName + "' saved successfully!");
+        player.sendTitle(ChatColor.GREEN + kitName + FontUtils.toSmallCaps(" saved!"), ChatColor.YELLOW + FontUtils.toSmallCaps("successfully saved"), 10, 40, 10);
+        player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("kit '") + kitName + FontUtils.toSmallCaps("' saved successfully!"));
         forceCleanup();
     }
     

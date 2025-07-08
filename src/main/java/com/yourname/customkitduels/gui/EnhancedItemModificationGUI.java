@@ -1,6 +1,7 @@
 package com.yourname.customkitduels.gui;
 
 import com.yourname.customkitduels.CustomKitDuels;
+import com.yourname.customkitduels.utils.FontUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,6 +31,7 @@ public class EnhancedItemModificationGUI implements Listener {
     private static final Set<UUID> waitingForCustomAmount = new HashSet<>();
     private boolean isActive = true;
     private boolean isNavigating = false;
+    private int currentPage = 0;
     
     public EnhancedItemModificationGUI(CustomKitDuels plugin, Player player, KitEditorGUI parentGUI, int targetSlot, ItemStack targetItem) {
         this.plugin = plugin;
@@ -37,7 +39,7 @@ public class EnhancedItemModificationGUI implements Listener {
         this.parentGUI = parentGUI;
         this.targetSlot = targetSlot;
         this.targetItem = targetItem.clone();
-        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + "modify item");
+        this.gui = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + FontUtils.toSmallCaps("modify item"));
         
         plugin.getLogger().info("[DEBUG] Creating EnhancedItemModificationGUI for player " + player.getName() + " slot " + targetSlot);
         
@@ -62,16 +64,16 @@ public class EnhancedItemModificationGUI implements Listener {
         // Remove item option
         ItemStack removeItem = new ItemStack(Material.BARRIER);
         ItemMeta removeMeta = removeItem.getItemMeta();
-        removeMeta.setDisplayName(ChatColor.RED + "remove item");
-        removeMeta.setLore(Arrays.asList(ChatColor.GRAY + "remove this item from the slot"));
+        removeMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("remove item"));
+        removeMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("remove this item from the slot")));
         removeItem.setItemMeta(removeMeta);
         gui.setItem(53, removeItem);
         
         // Back button
         ItemStack backItem = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.RED + "back");
-        backMeta.setLore(Arrays.asList(ChatColor.GRAY + "return to kit editor"));
+        backMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("back"));
+        backMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("return to kit editor")));
         backItem.setItemMeta(backMeta);
         gui.setItem(45, backItem);
     }
@@ -80,10 +82,10 @@ public class EnhancedItemModificationGUI implements Listener {
         // Title
         ItemStack titleItem = new ItemStack(Material.BOOK);
         ItemMeta titleMeta = titleItem.getItemMeta();
-        titleMeta.setDisplayName(ChatColor.YELLOW + "change item count");
+        titleMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change item count"));
         titleMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "select the amount you want",
-            ChatColor.GRAY + "current: " + targetItem.getAmount()
+            ChatColor.GRAY + FontUtils.toSmallCaps("select the amount you want"),
+            ChatColor.GRAY + FontUtils.toSmallCaps("current: ") + targetItem.getAmount()
         ));
         titleItem.setItemMeta(titleMeta);
         gui.setItem(0, titleItem);
@@ -98,8 +100,8 @@ public class EnhancedItemModificationGUI implements Listener {
             
             ItemMeta meta = amountItem.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(ChatColor.GREEN + "amount: " + amounts[i]);
-                meta.setLore(Arrays.asList(ChatColor.YELLOW + "click to set amount to " + amounts[i]));
+                meta.setDisplayName(ChatColor.GREEN + FontUtils.toSmallCaps("amount: ") + amounts[i]);
+                meta.setLore(Arrays.asList(ChatColor.YELLOW + FontUtils.toSmallCaps("click to set amount to ") + amounts[i]));
                 amountItem.setItemMeta(meta);
             }
             
@@ -109,10 +111,10 @@ public class EnhancedItemModificationGUI implements Listener {
         // Custom amount option
         ItemStack customItem = new ItemStack(Material.PAPER);
         ItemMeta customMeta = customItem.getItemMeta();
-        customMeta.setDisplayName(ChatColor.AQUA + "custom amount");
+        customMeta.setDisplayName(ChatColor.AQUA + FontUtils.toSmallCaps("custom amount"));
         customMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "enter a custom amount in chat",
-            ChatColor.YELLOW + "max: " + targetItem.getMaxStackSize()
+            ChatColor.GRAY + FontUtils.toSmallCaps("enter a custom amount in chat"),
+            ChatColor.YELLOW + FontUtils.toSmallCaps("max: ") + targetItem.getMaxStackSize()
         ));
         customItem.setItemMeta(customMeta);
         gui.setItem(24, customItem);
@@ -121,26 +123,35 @@ public class EnhancedItemModificationGUI implements Listener {
     private void setupEnchantableItemGUI() {
         List<Enchantment> relevantEnchants = getRelevantEnchantments(targetItem.getType());
         
+        if (relevantEnchants.isEmpty()) {
+            setupBasicItemGUI();
+            return;
+        }
+        
         int slot = 9;
-        for (Enchantment enchant : relevantEnchants) {
-            if (slot >= 45) break; // Don't overflow into control area
+        int enchantmentsPerPage = 4; // Show 4 enchantment types per page
+        int startIndex = currentPage * enchantmentsPerPage;
+        int endIndex = Math.min(startIndex + enchantmentsPerPage, relevantEnchants.size());
+        
+        for (int enchantIndex = startIndex; enchantIndex < endIndex; enchantIndex++) {
+            Enchantment enchant = relevantEnchants.get(enchantIndex);
             
-            // Create a row for each enchantment type
-            for (int level = 1; level <= enchant.getMaxLevel() && slot < 45; level++) {
+            // Create books for each level of this enchantment
+            for (int level = 1; level <= enchant.getMaxLevel() && slot < 44; level++) {
                 ItemStack enchantBook = new ItemStack(Material.ENCHANTED_BOOK);
                 enchantBook.setAmount(level); // Stack size shows level
                 
                 ItemMeta meta = enchantBook.getItemMeta();
                 String enchantName = formatEnchantmentName(enchant.getKey().getKey());
-                meta.setDisplayName(ChatColor.LIGHT_PURPLE + enchantName + " " + level);
+                meta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps(enchantName + " " + level));
                 
                 int currentLevel = targetItem.getEnchantmentLevel(enchant);
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "current level: " + (currentLevel > 0 ? currentLevel : "none"));
-                lore.add(ChatColor.YELLOW + "click to apply " + enchantName + " " + level);
+                lore.add(ChatColor.GRAY + FontUtils.toSmallCaps("current level: ") + (currentLevel > 0 ? currentLevel : FontUtils.toSmallCaps("none")));
+                lore.add(ChatColor.YELLOW + FontUtils.toSmallCaps("click to apply ") + enchantName + " " + level);
                 
                 if (currentLevel == level) {
-                    lore.add(ChatColor.GREEN + "✓ currently applied");
+                    lore.add(ChatColor.GREEN + "✓ " + FontUtils.toSmallCaps("currently applied"));
                 }
                 
                 meta.setLore(lore);
@@ -150,40 +161,62 @@ public class EnhancedItemModificationGUI implements Listener {
                 slot++;
             }
             
-            // Move to next row after each enchantment type
-            slot = ((slot / 9) + 1) * 9;
+            // Leave one slot gap between enchantment types if there's space
+            if (slot % 9 < 8 && slot < 44) {
+                slot++;
+            } else {
+                // Move to next row
+                slot = ((slot / 9) + 1) * 9;
+            }
         }
         
-        // Durability and rename buttons in last row
+        // Navigation buttons
+        if (currentPage > 0) {
+            ItemStack prevPage = new ItemStack(Material.ARROW);
+            ItemMeta prevMeta = prevPage.getItemMeta();
+            prevMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("previous page"));
+            prevPage.setItemMeta(prevMeta);
+            gui.setItem(46, prevPage);
+        }
+        
+        if (endIndex < relevantEnchants.size()) {
+            ItemStack nextPage = new ItemStack(Material.ARROW);
+            ItemMeta nextMeta = nextPage.getItemMeta();
+            nextMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("next page"));
+            nextPage.setItemMeta(nextMeta);
+            gui.setItem(52, nextPage);
+        }
+        
+        // Durability and rename buttons
         ItemStack durabilityItem = new ItemStack(Material.ANVIL);
         ItemMeta durabilityMeta = durabilityItem.getItemMeta();
-        durabilityMeta.setDisplayName(ChatColor.YELLOW + "change durability");
+        durabilityMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change durability"));
         durabilityMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "modify item durability",
-            ChatColor.YELLOW + "click to open durability editor"
+            ChatColor.GRAY + FontUtils.toSmallCaps("modify item durability"),
+            ChatColor.YELLOW + FontUtils.toSmallCaps("click to restore durability")
         ));
         durabilityItem.setItemMeta(durabilityMeta);
-        gui.setItem(46, durabilityItem);
+        gui.setItem(47, durabilityItem);
         
         ItemStack renameItem = new ItemStack(Material.NAME_TAG);
         ItemMeta renameMeta = renameItem.getItemMeta();
-        renameMeta.setDisplayName(ChatColor.AQUA + "rename item");
+        renameMeta.setDisplayName(ChatColor.AQUA + FontUtils.toSmallCaps("rename item"));
         renameMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "give your item a custom name",
-            ChatColor.YELLOW + "click to rename"
+            ChatColor.GRAY + FontUtils.toSmallCaps("give your item a custom name"),
+            ChatColor.YELLOW + FontUtils.toSmallCaps("click to rename")
         ));
         renameItem.setItemMeta(renameMeta);
-        gui.setItem(47, renameItem);
+        gui.setItem(48, renameItem);
     }
     
     private void setupBasicItemGUI() {
         // For non-stackable, non-enchantable items, just show basic options
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.YELLOW + "item options");
+        infoMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("item options"));
         infoMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + "this item cannot be modified",
-            ChatColor.GRAY + "you can only remove it"
+            ChatColor.GRAY + FontUtils.toSmallCaps("this item cannot be modified"),
+            ChatColor.GRAY + FontUtils.toSmallCaps("you can only remove it")
         ));
         infoItem.setItemMeta(infoMeta);
         gui.setItem(22, infoItem);
@@ -219,8 +252,8 @@ public class EnhancedItemModificationGUI implements Listener {
         List<Enchantment> enchantments = new ArrayList<>();
         String materialName = material.toString();
         
-        // Weapon enchantments
-        if (materialName.contains("SWORD") || materialName.contains("AXE") || material == Material.MACE) {
+        // Sword enchantments
+        if (materialName.contains("SWORD")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.SHARPNESS, Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS,
                 Enchantment.KNOCKBACK, Enchantment.FIRE_ASPECT, Enchantment.LOOTING,
@@ -228,8 +261,33 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Tool enchantments
-        if (materialName.contains("PICKAXE") || materialName.contains("SHOVEL") || materialName.contains("HOE")) {
+        // Axe enchantments (tools + some weapon enchants)
+        else if (materialName.contains("AXE")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
+                Enchantment.SHARPNESS, Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Pickaxe enchantments
+        else if (materialName.contains("PICKAXE")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Shovel enchantments
+        else if (materialName.contains("SHOVEL")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Hoe enchantments
+        else if (materialName.contains("HOE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
                 Enchantment.UNBREAKING, Enchantment.MENDING
@@ -237,30 +295,83 @@ public class EnhancedItemModificationGUI implements Listener {
         }
         
         // Bow enchantments
-        if (material == Material.BOW) {
+        else if (material == Material.BOW) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.POWER, Enchantment.PUNCH, Enchantment.FLAME,
                 Enchantment.INFINITY, Enchantment.UNBREAKING, Enchantment.MENDING
             ));
         }
         
-        // Armor enchantments
-        if (materialName.contains("HELMET") || materialName.contains("CHESTPLATE") || 
-            materialName.contains("LEGGINGS") || materialName.contains("BOOTS")) {
+        // Crossbow enchantments
+        else if (material == Material.CROSSBOW) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.QUICK_CHARGE, Enchantment.MULTISHOT, Enchantment.PIERCING,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Trident enchantments
+        else if (material == Material.TRIDENT) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.LOYALTY, Enchantment.CHANNELING, Enchantment.RIPTIDE,
+                Enchantment.IMPALING, Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Mace enchantments
+        else if (material == Material.MACE) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.DENSITY, Enchantment.BREACH, Enchantment.WIND_BURST,
+                Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Helmet enchantments
+        else if (materialName.contains("HELMET")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
-                Enchantment.PROJECTILE_PROTECTION, Enchantment.UNBREAKING, Enchantment.MENDING
+                Enchantment.PROJECTILE_PROTECTION, Enchantment.AQUA_AFFINITY, Enchantment.RESPIRATION,
+                Enchantment.THORNS, Enchantment.UNBREAKING, Enchantment.MENDING
             ));
+        }
+        
+        // Chestplate enchantments
+        else if (materialName.contains("CHESTPLATE")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
+                Enchantment.PROJECTILE_PROTECTION, Enchantment.THORNS,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Leggings enchantments
+        else if (materialName.contains("LEGGINGS")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
+                Enchantment.PROJECTILE_PROTECTION, Enchantment.THORNS,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Boots enchantments
+        else if (materialName.contains("BOOTS")) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
+                Enchantment.PROJECTILE_PROTECTION, Enchantment.FEATHER_FALLING, 
+                Enchantment.DEPTH_STRIDER, Enchantment.FROST_WALKER, Enchantment.SOUL_SPEED,
+                Enchantment.THORNS, Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Other items
+        else if (material == Material.SHIELD || material == Material.FISHING_ROD || 
+                 material == Material.SHEARS || material == Material.FLINT_AND_STEEL ||
+                 material == Material.ELYTRA) {
+            enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
             
-            if (materialName.contains("HELMET")) {
-                enchantments.addAll(Arrays.asList(Enchantment.AQUA_AFFINITY, Enchantment.RESPIRATION));
-            }
-            
-            if (materialName.contains("BOOTS")) {
-                enchantments.addAll(Arrays.asList(
-                    Enchantment.FEATHER_FALLING, Enchantment.DEPTH_STRIDER, 
-                    Enchantment.FROST_WALKER, Enchantment.SOUL_SPEED
-                ));
+            if (material == Material.FISHING_ROD) {
+                enchantments.addAll(Arrays.asList(Enchantment.LUCK_OF_THE_SEA, Enchantment.LURE));
             }
         }
         
@@ -320,6 +431,23 @@ public class EnhancedItemModificationGUI implements Listener {
             return;
         }
         
+        if (slot == 46) { // Previous page
+            if (currentPage > 0) {
+                currentPage--;
+                setupGUI();
+            }
+            return;
+        }
+        
+        if (slot == 52) { // Next page
+            List<Enchantment> relevantEnchants = getRelevantEnchantments(targetItem.getType());
+            if ((currentPage + 1) * 4 < relevantEnchants.size()) {
+                currentPage++;
+                setupGUI();
+            }
+            return;
+        }
+        
         if (isStackableItem(targetItem)) {
             handleStackableItemClick(slot);
         } else if (isEnchantableItem(targetItem)) {
@@ -336,7 +464,7 @@ public class EnhancedItemModificationGUI implements Listener {
                 int newAmount = Math.min(amounts[index], targetItem.getMaxStackSize());
                 targetItem.setAmount(newAmount);
                 parentGUI.setSlotItem(targetSlot, targetItem);
-                player.sendMessage(ChatColor.GREEN + "item amount set to " + newAmount + "!");
+                player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("item amount set to ") + newAmount + "!");
                 returnToParent();
             }
         } else if (slot == 24) {
@@ -363,28 +491,28 @@ public class EnhancedItemModificationGUI implements Listener {
                         // Apply the enchantment
                         targetItem.addUnsafeEnchantment(enchant, level);
                         parentGUI.setSlotItem(targetSlot, targetItem);
-                        player.sendMessage(ChatColor.GREEN + "applied " + enchantName + " " + level + "!");
+                        player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("applied ") + enchantName + " " + level + "!");
                         returnToParent();
                         return;
                     }
                 }
             }
-        } else if (slot == 46) {
-            // Durability editor - for now just reset to full durability
+        } else if (slot == 47) {
+            // Durability editor - reset to full durability
             if (targetItem.getType().getMaxDurability() > 0) {
                 targetItem.setDurability((short) 0); // Full durability
                 parentGUI.setSlotItem(targetSlot, targetItem);
-                player.sendMessage(ChatColor.GREEN + "item durability restored!");
+                player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("item durability restored!"));
                 returnToParent();
             }
-        } else if (slot == 47) {
+        } else if (slot == 48) {
             // Rename item
             requestItemName();
         }
     }
     
     private void removeConflictingEnchantments(Enchantment newEnchantment) {
-        // Simple conflict removal - remove protection enchants if adding another protection
+        // Protection enchants conflict
         if (newEnchantment == Enchantment.PROTECTION || newEnchantment == Enchantment.FIRE_PROTECTION ||
             newEnchantment == Enchantment.BLAST_PROTECTION || newEnchantment == Enchantment.PROJECTILE_PROTECTION) {
             targetItem.removeEnchantment(Enchantment.PROTECTION);
@@ -393,12 +521,48 @@ public class EnhancedItemModificationGUI implements Listener {
             targetItem.removeEnchantment(Enchantment.PROJECTILE_PROTECTION);
         }
         
-        // Remove damage enchants if adding another damage enchant
+        // Damage enchants conflict
         if (newEnchantment == Enchantment.SHARPNESS || newEnchantment == Enchantment.SMITE ||
             newEnchantment == Enchantment.BANE_OF_ARTHROPODS) {
             targetItem.removeEnchantment(Enchantment.SHARPNESS);
             targetItem.removeEnchantment(Enchantment.SMITE);
             targetItem.removeEnchantment(Enchantment.BANE_OF_ARTHROPODS);
+        }
+        
+        // Fortune and Silk Touch conflict
+        if (newEnchantment == Enchantment.FORTUNE || newEnchantment == Enchantment.SILK_TOUCH) {
+            targetItem.removeEnchantment(Enchantment.FORTUNE);
+            targetItem.removeEnchantment(Enchantment.SILK_TOUCH);
+        }
+        
+        // Infinity and Mending conflict
+        if (newEnchantment == Enchantment.INFINITY || newEnchantment == Enchantment.MENDING) {
+            targetItem.removeEnchantment(Enchantment.INFINITY);
+            targetItem.removeEnchantment(Enchantment.MENDING);
+        }
+        
+        // Depth Strider and Frost Walker conflict
+        if (newEnchantment == Enchantment.DEPTH_STRIDER || newEnchantment == Enchantment.FROST_WALKER) {
+            targetItem.removeEnchantment(Enchantment.DEPTH_STRIDER);
+            targetItem.removeEnchantment(Enchantment.FROST_WALKER);
+        }
+        
+        // Multishot and Piercing conflict
+        if (newEnchantment == Enchantment.MULTISHOT || newEnchantment == Enchantment.PIERCING) {
+            targetItem.removeEnchantment(Enchantment.MULTISHOT);
+            targetItem.removeEnchantment(Enchantment.PIERCING);
+        }
+        
+        // Loyalty and Riptide conflict
+        if (newEnchantment == Enchantment.LOYALTY || newEnchantment == Enchantment.RIPTIDE) {
+            targetItem.removeEnchantment(Enchantment.LOYALTY);
+            targetItem.removeEnchantment(Enchantment.RIPTIDE);
+        }
+        
+        // Channeling and Riptide conflict
+        if (newEnchantment == Enchantment.CHANNELING || newEnchantment == Enchantment.RIPTIDE) {
+            targetItem.removeEnchantment(Enchantment.CHANNELING);
+            targetItem.removeEnchantment(Enchantment.RIPTIDE);
         }
     }
     
@@ -407,7 +571,7 @@ public class EnhancedItemModificationGUI implements Listener {
         waitingForCustomAmount.add(player.getUniqueId());
         isNavigating = true;
         player.closeInventory();
-        player.sendMessage(ChatColor.YELLOW + "enter the amount (1-" + targetItem.getMaxStackSize() + ") in chat:");
+        player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("enter the amount (1-") + targetItem.getMaxStackSize() + FontUtils.toSmallCaps(") in chat:"));
     }
     
     private void requestItemName() {
@@ -415,7 +579,7 @@ public class EnhancedItemModificationGUI implements Listener {
         waitingForCustomAmount.add(player.getUniqueId()); // Reuse the same set
         isNavigating = true;
         player.closeInventory();
-        player.sendMessage(ChatColor.YELLOW + "enter the new item name in chat:");
+        player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("enter the new item name in chat:"));
     }
     
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -438,11 +602,11 @@ public class EnhancedItemModificationGUI implements Listener {
         try {
             int amount = Integer.parseInt(message);
             if (amount < 1 || amount > targetItem.getMaxStackSize()) {
-                player.sendMessage(ChatColor.RED + "invalid amount! must be between 1 and " + targetItem.getMaxStackSize());
+                player.sendMessage(ChatColor.RED + FontUtils.toSmallCaps("invalid amount! must be between 1 and ") + targetItem.getMaxStackSize());
             } else {
                 targetItem.setAmount(amount);
                 parentGUI.setSlotItem(targetSlot, targetItem);
-                player.sendMessage(ChatColor.GREEN + "item amount set to " + amount + "!");
+                player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("item amount set to ") + amount + "!");
                 
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     returnToParent();
@@ -456,7 +620,7 @@ public class EnhancedItemModificationGUI implements Listener {
                 meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', message));
                 targetItem.setItemMeta(meta);
                 parentGUI.setSlotItem(targetSlot, targetItem);
-                player.sendMessage(ChatColor.GREEN + "item renamed to: " + message);
+                player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("item renamed to: ") + message);
                 
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     returnToParent();
@@ -475,7 +639,7 @@ public class EnhancedItemModificationGUI implements Listener {
     private void removeItem() {
         plugin.getLogger().info("[DEBUG] Removing item from slot " + targetSlot);
         parentGUI.clearSlot(targetSlot);
-        player.sendMessage(ChatColor.YELLOW + "item removed from slot!");
+        player.sendMessage(ChatColor.YELLOW + FontUtils.toSmallCaps("item removed from slot!"));
         returnToParent();
     }
     

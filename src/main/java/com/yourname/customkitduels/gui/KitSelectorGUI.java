@@ -32,7 +32,7 @@ public class KitSelectorGUI implements Listener {
         this.challenger = challenger;
         this.target = target;
         this.playerKits = plugin.getKitManager().getPlayerKits(challenger.getUniqueId());
-        this.gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Your Kit");
+        this.gui = Bukkit.createInventory(null, 27, ChatColor.DARK_RED + "select your kit");
         
         plugin.getLogger().info("[DEBUG] Creating KitSelectorGUI for challenger " + challenger.getName() + " vs " + target.getName());
         
@@ -47,10 +47,10 @@ public class KitSelectorGUI implements Listener {
             // No kits message
             ItemStack noKits = new ItemStack(Material.BARRIER);
             ItemMeta noKitsMeta = noKits.getItemMeta();
-            noKitsMeta.setDisplayName(ChatColor.RED + "No Kits Found");
+            noKitsMeta.setDisplayName(ChatColor.RED + "no kits found");
             noKitsMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "You don't have any kits!",
-                ChatColor.YELLOW + "Create one with /ckd createkit <name>"
+                ChatColor.GRAY + "you don't have any kits!",
+                ChatColor.YELLOW + "create one with /customkit create"
             ));
             noKits.setItemMeta(noKitsMeta);
             gui.setItem(13, noKits);
@@ -62,10 +62,10 @@ public class KitSelectorGUI implements Listener {
         for (int i = 0; i < Math.min(playerKits.size(), 7); i++) {
             Kit kit = playerKits.get(i);
             
-            // Use sword as kit icon
-            ItemStack kitItem = new ItemStack(Material.IRON_SWORD);
+            // Use book as kit icon
+            ItemStack kitItem = new ItemStack(Material.BOOK);
             ItemMeta kitMeta = kitItem.getItemMeta();
-            kitMeta.setDisplayName(ChatColor.AQUA + kit.getName());
+            kitMeta.setDisplayName(ChatColor.RED + kit.getName());
             
             // Get kit settings for display
             double hearts = plugin.getKitManager().getKitHearts(challenger.getUniqueId(), kit.getName());
@@ -73,8 +73,11 @@ public class KitSelectorGUI implements Listener {
             boolean healthIndicators = plugin.getKitManager().getKitHealthIndicators(challenger.getUniqueId(), kit.getName());
             
             kitMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Challenge " + target.getName() + " with this kit",
-                ChatColor.GREEN + "Click to select"
+                ChatColor.GRAY + "challenge " + target.getName() + " with this kit",
+                ChatColor.GRAY + "hearts: " + ChatColor.WHITE + hearts,
+                ChatColor.GRAY + "natural regen: " + (naturalRegen ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled"),
+                "",
+                ChatColor.GREEN + "click to select"
             ));
             kitItem.setItemMeta(kitMeta);
             gui.setItem(kitSlots[i], kitItem);
@@ -83,7 +86,8 @@ public class KitSelectorGUI implements Listener {
         // Cancel button
         ItemStack cancelItem = new ItemStack(Material.BARRIER);
         ItemMeta cancelMeta = cancelItem.getItemMeta();
-        cancelMeta.setDisplayName(ChatColor.RED + "Cancel");
+        cancelMeta.setDisplayName(ChatColor.RED + "cancel");
+        cancelMeta.setLore(Arrays.asList(ChatColor.GRAY + "cancel duel request"));
         cancelItem.setItemMeta(cancelMeta);
         gui.setItem(22, cancelItem);
     }
@@ -118,7 +122,7 @@ public class KitSelectorGUI implements Listener {
         
         if (slot == 22) { // Cancel
             plugin.getLogger().info("[DEBUG] Duel cancelled by " + challenger.getName());
-            challenger.sendMessage(ChatColor.RED + "Duel request cancelled.");
+            challenger.sendMessage(ChatColor.RED + "duel request cancelled.");
             forceCleanup();
             return;
         }

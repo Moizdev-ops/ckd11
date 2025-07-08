@@ -129,7 +129,7 @@ public class EnhancedItemModificationGUI implements Listener {
         }
         
         int slot = 9;
-        int enchantmentsPerPage = 4; // Show 4 enchantment types per page
+        int enchantmentsPerPage = 6; // Show 6 enchantment types per page (better spacing)
         int startIndex = currentPage * enchantmentsPerPage;
         int endIndex = Math.min(startIndex + enchantmentsPerPage, relevantEnchants.size());
         
@@ -161,12 +161,9 @@ public class EnhancedItemModificationGUI implements Listener {
                 slot++;
             }
             
-            // Leave one slot gap between enchantment types if there's space
-            if (slot % 9 < 8 && slot < 44) {
-                slot++;
-            } else {
-                // Move to next row
-                slot = ((slot / 9) + 1) * 9;
+            // FIXED: Only add gap if we're not at the end of a row and not going to start of next row
+            if (slot % 9 != 0 && slot < 44 && enchantIndex < endIndex - 1) {
+                slot++; // Add gap between enchantment types
             }
         }
         
@@ -179,6 +176,7 @@ public class EnhancedItemModificationGUI implements Listener {
             gui.setItem(46, prevPage);
         }
         
+        // FIXED: Only show next page if there are actually more enchantments
         if (endIndex < relevantEnchants.size()) {
             ItemStack nextPage = new ItemStack(Material.ARROW);
             ItemMeta nextMeta = nextPage.getItemMeta();
@@ -187,17 +185,18 @@ public class EnhancedItemModificationGUI implements Listener {
             gui.setItem(52, nextPage);
         }
         
-        // Durability and rename buttons
+        // Durability button - opens anvil GUI
         ItemStack durabilityItem = new ItemStack(Material.ANVIL);
         ItemMeta durabilityMeta = durabilityItem.getItemMeta();
         durabilityMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change durability"));
         durabilityMeta.setLore(Arrays.asList(
             ChatColor.GRAY + FontUtils.toSmallCaps("modify item durability"),
-            ChatColor.YELLOW + FontUtils.toSmallCaps("click to restore durability")
+            ChatColor.YELLOW + FontUtils.toSmallCaps("click to open durability editor")
         ));
         durabilityItem.setItemMeta(durabilityMeta);
         gui.setItem(47, durabilityItem);
         
+        // Rename button
         ItemStack renameItem = new ItemStack(Material.NAME_TAG);
         ItemMeta renameMeta = renameItem.getItemMeta();
         renameMeta.setDisplayName(ChatColor.AQUA + FontUtils.toSmallCaps("rename item"));
@@ -441,7 +440,7 @@ public class EnhancedItemModificationGUI implements Listener {
         
         if (slot == 52) { // Next page
             List<Enchantment> relevantEnchants = getRelevantEnchantments(targetItem.getType());
-            if ((currentPage + 1) * 4 < relevantEnchants.size()) {
+            if ((currentPage + 1) * 6 < relevantEnchants.size()) {
                 currentPage++;
                 setupGUI();
             }
@@ -477,14 +476,14 @@ public class EnhancedItemModificationGUI implements Listener {
         if (slot >= 9 && slot < 45) {
             ItemStack clickedItem = gui.getItem(slot);
             if (clickedItem != null && clickedItem.getType() == Material.ENCHANTED_BOOK) {
-                // Extract enchantment info from the item
+                // FIXED: Extract enchantment info from the item properly
                 String displayName = clickedItem.getItemMeta().getDisplayName();
                 int level = clickedItem.getAmount();
                 
                 // Find the enchantment based on display name
                 for (Enchantment enchant : getRelevantEnchantments(targetItem.getType())) {
                     String enchantName = formatEnchantmentName(enchant.getKey().getKey());
-                    if (displayName.contains(enchantName)) {
+                    if (displayName.toLowerCase().contains(enchantName.toLowerCase())) {
                         // Remove conflicting enchantments
                         removeConflictingEnchantments(enchant);
                         
@@ -492,23 +491,30 @@ public class EnhancedItemModificationGUI implements Listener {
                         targetItem.addUnsafeEnchantment(enchant, level);
                         parentGUI.setSlotItem(targetSlot, targetItem);
                         player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("applied ") + enchantName + " " + level + "!");
-                        returnToParent();
+                        
+                        // Refresh GUI to show updated enchantments
+                        setupGUI();
                         return;
                     }
                 }
             }
         } else if (slot == 47) {
-            // Durability editor - reset to full durability
-            if (targetItem.getType().getMaxDurability() > 0) {
-                targetItem.setDurability((short) 0); // Full durability
-                parentGUI.setSlotItem(targetSlot, targetItem);
-                player.sendMessage(ChatColor.GREEN + FontUtils.toSmallCaps("item durability restored!"));
-                returnToParent();
-            }
+            // Durability editor - open anvil GUI
+            openDurabilityAnvilGUI();
         } else if (slot == 48) {
             // Rename item
             requestItemName();
         }
+    }
+    
+    private void openDurabilityAnvilGUI() {
+        plugin.getLogger().info("[DEBUG] Opening durability anvil GUI for " + player.getName());
+        isNavigating = true;
+        forceCleanup();
+        
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            new DurabilityAnvilGUI(plugin, player, parentGUI, targetSlot, targetItem).open();
+        }, 1L);
     }
     
     private void removeConflictingEnchantments(Enchantment newEnchantment) {

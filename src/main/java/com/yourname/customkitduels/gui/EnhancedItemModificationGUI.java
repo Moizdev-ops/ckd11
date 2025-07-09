@@ -64,9 +64,6 @@ public class EnhancedItemModificationGUI implements Listener {
         gui.clear();
         slotToEnchantment.clear();
         
-        // Display the item being modified
-        gui.setItem(4, targetItem.clone());
-        
         if (isStackableItem(targetItem)) {
             setupStackableItemGUI();
         } else if (isEnchantableItem(targetItem)) {
@@ -74,6 +71,9 @@ public class EnhancedItemModificationGUI implements Listener {
         } else {
             setupBasicItemGUI();
         }
+        
+        // Display the item being modified in bottom row
+        gui.setItem(45, targetItem.clone());
         
         // Remove item option
         ItemStack removeItem = new ItemStack(Material.BARRIER);
@@ -89,7 +89,7 @@ public class EnhancedItemModificationGUI implements Listener {
         backMeta.setDisplayName(ChatColor.RED + FontUtils.toSmallCaps("back"));
         backMeta.setLore(Arrays.asList(ChatColor.GRAY + FontUtils.toSmallCaps("return to kit editor")));
         backItem.setItemMeta(backMeta);
-        gui.setItem(45, backItem);
+        gui.setItem(49, backItem);
     }
     
     private void setupStackableItemGUI() {
@@ -135,76 +135,71 @@ public class EnhancedItemModificationGUI implements Listener {
     }
     
     private void setupEnchantableItemGUI() {
-        List<Enchantment> relevantEnchants = getRelevantEnchantments(targetItem.getType());
+        List<List<Enchantment>> enchantmentRows = getOrganizedEnchantments(targetItem.getType());
         
-        if (relevantEnchants.isEmpty()) {
+        if (enchantmentRows.isEmpty()) {
             setupBasicItemGUI();
             return;
         }
         
-        // FIXED: Layout - Each enchantment level gets its own slot, organized in rows
-        int slot = 9; // Start from row 1
+        int currentSlot = 0; // Start from slot 0 (first row)
         
-        for (Enchantment enchant : relevantEnchants) {
-            if (enchant == Enchantment.MENDING) {
-                continue; // Skip Mending for now, we'll add it to bottom row
-            }
+        // Process each row of enchantments
+        for (List<Enchantment> rowEnchants : enchantmentRows) {
+            int rowStartSlot = currentSlot;
             
-            // Create enchantment books for each level
-            int maxLevel = enchant.getMaxLevel();
-            int startSlot = slot;
-            
-            for (int level = 1; level <= maxLevel; level++) {
-                if (slot >= 36) break; // Don't go into bottom control area
+            for (int enchantIndex = 0; enchantIndex < rowEnchants.size(); enchantIndex++) {
+                Enchantment enchant = rowEnchants.get(enchantIndex);
                 
-                ItemStack enchantBook = createEnchantmentBook(enchant, level);
-                gui.setItem(slot, enchantBook);
-                
-                // Store mapping for click handling
-                slotToEnchantment.put(slot, new EnchantmentData(enchant, level));
-                
-                slot++;
-            }
-            
-            // Add gap after enchantment group (but not if we're at the start of a row)
-            if (slot < 36 && (slot - 9) % 9 != 0) {
-                // Check if adding gap would fit the next enchantment in the same row
-                Enchantment nextEnchant = getNextEnchantment(relevantEnchants, enchant);
-                if (nextEnchant != null && nextEnchant != Enchantment.MENDING) {
-                    int nextEnchantLevels = nextEnchant.getMaxLevel();
-                    int currentRowPosition = (slot - 9) % 9;
+                // Add all levels for this enchantment
+                for (int level = 1; level <= enchant.getMaxLevel(); level++) {
+                    if (currentSlot >= 36) break; // Don't go into bottom control area
                     
-                    // If next enchantment fits in current row with gap, add gap
-                    if (currentRowPosition + 1 + nextEnchantLevels <= 9) {
-                        slot++; // Add gap
-                    } else {
-                        // Move to next row
-                        slot = ((slot - 9) / 9 + 1) * 9 + 9;
+                    ItemStack enchantBook = createEnchantmentBook(enchant, level);
+                    gui.setItem(currentSlot, enchantBook);
+                    
+                    // Store mapping for click handling
+                    slotToEnchantment.put(currentSlot, new EnchantmentData(enchant, level));
+                    
+                    currentSlot++;
+                }
+                
+                // Add gap after enchantment (except for last enchantment in row)
+                if (enchantIndex < rowEnchants.size() - 1 && currentSlot < 36) {
+                    // Check if we have space for gap + next enchantment in current row
+                    int currentRowPosition = (currentSlot - rowStartSlot) % 9;
+                    Enchantment nextEnchant = rowEnchants.get(enchantIndex + 1);
+                    
+                    if (currentRowPosition + 1 + nextEnchant.getMaxLevel() <= 9) {
+                        currentSlot++; // Add gap
                     }
-                } else {
-                    // Move to next row for next enchantment
-                    slot = ((slot - 9) / 9 + 1) * 9 + 9;
                 }
             }
+            
+            // Move to next row (align to next row of 9)
+            currentSlot = ((currentSlot / 9) + 1) * 9;
         }
         
-        // Add Mending in the bottom row (slots 46-52)
-        if (relevantEnchants.contains(Enchantment.MENDING)) {
+        // Add Mending in the bottom row (slot 46)
+        List<Enchantment> allEnchants = getRelevantEnchantments(targetItem.getType());
+        if (allEnchants.contains(Enchantment.MENDING)) {
             ItemStack mendingBook = createEnchantmentBook(Enchantment.MENDING, 1);
             gui.setItem(46, mendingBook);
             slotToEnchantment.put(46, new EnchantmentData(Enchantment.MENDING, 1));
         }
         
         // Durability button
-        ItemStack durabilityItem = new ItemStack(Material.ANVIL);
-        ItemMeta durabilityMeta = durabilityItem.getItemMeta();
-        durabilityMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change durability"));
-        durabilityMeta.setLore(Arrays.asList(
-            ChatColor.GRAY + FontUtils.toSmallCaps("modify item durability"),
-            ChatColor.YELLOW + FontUtils.toSmallCaps("click to open durability editor")
-        ));
-        durabilityItem.setItemMeta(durabilityMeta);
-        gui.setItem(47, durabilityItem);
+        if (targetItem.getType().getMaxDurability() > 0) {
+            ItemStack durabilityItem = new ItemStack(Material.ANVIL);
+            ItemMeta durabilityMeta = durabilityItem.getItemMeta();
+            durabilityMeta.setDisplayName(ChatColor.YELLOW + FontUtils.toSmallCaps("change durability"));
+            durabilityMeta.setLore(Arrays.asList(
+                ChatColor.GRAY + FontUtils.toSmallCaps("modify item durability"),
+                ChatColor.YELLOW + FontUtils.toSmallCaps("click to open durability editor")
+            ));
+            durabilityItem.setItemMeta(durabilityMeta);
+            gui.setItem(47, durabilityItem);
+        }
         
         // Rename button
         ItemStack renameItem = new ItemStack(Material.NAME_TAG);
@@ -218,12 +213,107 @@ public class EnhancedItemModificationGUI implements Listener {
         gui.setItem(48, renameItem);
     }
     
-    private Enchantment getNextEnchantment(List<Enchantment> enchantments, Enchantment current) {
-        int currentIndex = enchantments.indexOf(current);
-        if (currentIndex >= 0 && currentIndex < enchantments.size() - 1) {
-            return enchantments.get(currentIndex + 1);
+    private List<List<Enchantment>> getOrganizedEnchantments(Material material) {
+        List<List<Enchantment>> rows = new ArrayList<>();
+        String materialName = material.toString();
+        
+        // Helmet enchantments
+        if (materialName.contains("HELMET")) {
+            rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
+            rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION, Enchantment.AQUA_AFFINITY));
+            rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION, Enchantment.RESPIRATION));
         }
-        return null;
+        // Chestplate enchantments
+        else if (materialName.contains("CHESTPLATE")) {
+            rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
+            rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION));
+            rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION));
+        }
+        // Leggings enchantments
+        else if (materialName.contains("LEGGINGS")) {
+            rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
+            rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION));
+            rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION));
+        }
+        // Boots enchantments
+        else if (materialName.contains("BOOTS")) {
+            rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
+            rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION, Enchantment.FEATHER_FALLING));
+            rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION, Enchantment.DEPTH_STRIDER));
+            rows.add(Arrays.asList(Enchantment.FROST_WALKER, Enchantment.SOUL_SPEED));
+        }
+        // Sword enchantments
+        else if (materialName.contains("SWORD")) {
+            rows.add(Arrays.asList(Enchantment.SHARPNESS, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.SMITE, Enchantment.KNOCKBACK));
+            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS, Enchantment.FIRE_ASPECT));
+            rows.add(Arrays.asList(Enchantment.LOOTING, Enchantment.SWEEPING_EDGE));
+        }
+        // Axe enchantments
+        else if (materialName.contains("AXE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE, Enchantment.SHARPNESS));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH, Enchantment.SMITE));
+            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS));
+        }
+        // Pickaxe enchantments
+        else if (materialName.contains("PICKAXE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        // Shovel enchantments
+        else if (materialName.contains("SHOVEL")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        // Hoe enchantments
+        else if (materialName.contains("HOE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        // Bow enchantments
+        else if (material == Material.BOW) {
+            rows.add(Arrays.asList(Enchantment.POWER, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.PUNCH, Enchantment.INFINITY));
+            rows.add(Arrays.asList(Enchantment.FLAME));
+        }
+        // Crossbow enchantments
+        else if (material == Material.CROSSBOW) {
+            rows.add(Arrays.asList(Enchantment.QUICK_CHARGE, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.MULTISHOT));
+            rows.add(Arrays.asList(Enchantment.PIERCING));
+        }
+        // Trident enchantments
+        else if (material == Material.TRIDENT) {
+            rows.add(Arrays.asList(Enchantment.LOYALTY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.CHANNELING, Enchantment.IMPALING));
+            rows.add(Arrays.asList(Enchantment.RIPTIDE));
+        }
+        // Mace enchantments
+        else if (material == Material.MACE) {
+            rows.add(Arrays.asList(Enchantment.DENSITY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.BREACH, Enchantment.SMITE));
+            rows.add(Arrays.asList(Enchantment.WIND_BURST, Enchantment.BANE_OF_ARTHROPODS));
+        }
+        // Fishing Rod enchantments
+        else if (material == Material.FISHING_ROD) {
+            rows.add(Arrays.asList(Enchantment.LUCK_OF_THE_SEA, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.LURE));
+        }
+        // Other enchantable items
+        else if (material == Material.SHIELD || material == Material.SHEARS || 
+                 material == Material.FLINT_AND_STEEL || material == Material.ELYTRA) {
+            rows.add(Arrays.asList(Enchantment.UNBREAKING));
+        }
+        
+        return rows;
     }
     
     private ItemStack createEnchantmentBook(Enchantment enchant, int level) {
@@ -288,11 +378,31 @@ public class EnhancedItemModificationGUI implements Listener {
             Enchantment.INFINITY, Enchantment.MENDING
         ));
         
+        Set<Enchantment> depthStriderFrostWalker = new HashSet<>(Arrays.asList(
+            Enchantment.DEPTH_STRIDER, Enchantment.FROST_WALKER
+        ));
+        
+        Set<Enchantment> multishotPiercing = new HashSet<>(Arrays.asList(
+            Enchantment.MULTISHOT, Enchantment.PIERCING
+        ));
+        
+        Set<Enchantment> loyaltyRiptide = new HashSet<>(Arrays.asList(
+            Enchantment.LOYALTY, Enchantment.RIPTIDE
+        ));
+        
+        Set<Enchantment> channelingRiptide = new HashSet<>(Arrays.asList(
+            Enchantment.CHANNELING, Enchantment.RIPTIDE
+        ));
+        
         // Check all conflict groups
         return (protectionEnchants.contains(ench1) && protectionEnchants.contains(ench2)) ||
                (damageEnchants.contains(ench1) && damageEnchants.contains(ench2)) ||
                (fortuneSilkTouch.contains(ench1) && fortuneSilkTouch.contains(ench2)) ||
-               (infinityMending.contains(ench1) && infinityMending.contains(ench2));
+               (infinityMending.contains(ench1) && infinityMending.contains(ench2)) ||
+               (depthStriderFrostWalker.contains(ench1) && depthStriderFrostWalker.contains(ench2)) ||
+               (multishotPiercing.contains(ench1) && multishotPiercing.contains(ench2)) ||
+               (loyaltyRiptide.contains(ench1) && loyaltyRiptide.contains(ench2)) ||
+               (channelingRiptide.contains(ench1) && channelingRiptide.contains(ench2));
     }
     
     private void setupBasicItemGUI() {
@@ -507,7 +617,7 @@ public class EnhancedItemModificationGUI implements Listener {
         
         plugin.getLogger().info("[DEBUG] EnhancedItemModificationGUI click event - Player: " + player.getName() + ", Slot: " + slot);
         
-        if (slot == 45) { // Back
+        if (slot == 49) { // Back
             returnToParent();
             return;
         }

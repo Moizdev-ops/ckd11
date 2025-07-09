@@ -142,7 +142,7 @@ public class EnhancedItemModificationGUI implements Listener {
             return;
         }
         
-        // FIXED: Layout - 2 enchantments per row, each enchantment gets ONE slot with max level
+        // FIXED: Layout - Each enchantment level gets its own slot, organized in rows
         int slot = 9; // Start from row 1
         
         for (Enchantment enchant : relevantEnchants) {
@@ -150,23 +150,42 @@ public class EnhancedItemModificationGUI implements Listener {
                 continue; // Skip Mending for now, we'll add it to bottom row
             }
             
-            if (slot >= 36) break; // Don't go into bottom control area
+            // Create enchantment books for each level
+            int maxLevel = enchant.getMaxLevel();
+            int startSlot = slot;
             
-            // Skip slots that would put us in the 3rd column (we want 2 per row)
-            if ((slot - 9) % 9 >= 2) {
-                slot = ((slot / 9) + 1) * 9; // Move to next row
-                if (slot >= 36) break;
+            for (int level = 1; level <= maxLevel; level++) {
+                if (slot >= 36) break; // Don't go into bottom control area
+                
+                ItemStack enchantBook = createEnchantmentBook(enchant, level);
+                gui.setItem(slot, enchantBook);
+                
+                // Store mapping for click handling
+                slotToEnchantment.put(slot, new EnchantmentData(enchant, level));
+                
+                slot++;
             }
             
-            // Create ONE enchantment book with max level for this enchantment
-            int maxLevel = enchant.getMaxLevel();
-            ItemStack enchantBook = createEnchantmentBook(enchant, maxLevel);
-            gui.setItem(slot, enchantBook);
-            
-            // Store mapping for click handling - use max level
-            slotToEnchantment.put(slot, new EnchantmentData(enchant, maxLevel));
-            
-            slot++;
+            // Add gap after enchantment group (but not if we're at the start of a row)
+            if (slot < 36 && (slot - 9) % 9 != 0) {
+                // Check if adding gap would fit the next enchantment in the same row
+                Enchantment nextEnchant = getNextEnchantment(relevantEnchants, enchant);
+                if (nextEnchant != null && nextEnchant != Enchantment.MENDING) {
+                    int nextEnchantLevels = nextEnchant.getMaxLevel();
+                    int currentRowPosition = (slot - 9) % 9;
+                    
+                    // If next enchantment fits in current row with gap, add gap
+                    if (currentRowPosition + 1 + nextEnchantLevels <= 9) {
+                        slot++; // Add gap
+                    } else {
+                        // Move to next row
+                        slot = ((slot - 9) / 9 + 1) * 9 + 9;
+                    }
+                } else {
+                    // Move to next row for next enchantment
+                    slot = ((slot - 9) / 9 + 1) * 9 + 9;
+                }
+            }
         }
         
         // Add Mending in the bottom row (slots 46-52)
@@ -199,23 +218,30 @@ public class EnhancedItemModificationGUI implements Listener {
         gui.setItem(48, renameItem);
     }
     
-    private ItemStack createEnchantmentBook(Enchantment enchant, int maxLevel) {
+    private Enchantment getNextEnchantment(List<Enchantment> enchantments, Enchantment current) {
+        int currentIndex = enchantments.indexOf(current);
+        if (currentIndex >= 0 && currentIndex < enchantments.size() - 1) {
+            return enchantments.get(currentIndex + 1);
+        }
+        return null;
+    }
+    
+    private ItemStack createEnchantmentBook(Enchantment enchant, int level) {
         ItemStack enchantBook = new ItemStack(Material.ENCHANTED_BOOK);
         ItemMeta meta = enchantBook.getItemMeta();
         
         String enchantName = formatEnchantmentName(enchant.getKey().getKey());
-        meta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps(enchantName));
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + FontUtils.toSmallCaps(enchantName + " " + level));
         
         int currentLevel = targetItem.getEnchantmentLevel(enchant);
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + FontUtils.toSmallCaps("current level: ") + (currentLevel > 0 ? currentLevel : FontUtils.toSmallCaps("none")));
-        lore.add(ChatColor.GRAY + FontUtils.toSmallCaps("max level: ") + maxLevel);
-        lore.add(ChatColor.YELLOW + FontUtils.toSmallCaps("click to apply ") + enchantName + " " + maxLevel);
+        lore.add(ChatColor.YELLOW + FontUtils.toSmallCaps("click to apply ") + enchantName + " " + level);
         
-        if (currentLevel == maxLevel) {
+        if (currentLevel == level) {
             lore.add(ChatColor.GREEN + "✓ " + FontUtils.toSmallCaps("currently applied"));
-        } else if (currentLevel > 0) {
-            lore.add(ChatColor.YELLOW + "⚠ " + FontUtils.toSmallCaps("will upgrade to max level"));
+        } else if (currentLevel > 0 && currentLevel != level) {
+            lore.add(ChatColor.YELLOW + "⚠ " + FontUtils.toSmallCaps("will replace current level"));
         }
         
         // Check for conflicts

@@ -217,28 +217,96 @@ public class EnhancedItemModificationGUI implements Listener {
         List<List<Enchantment>> rows = new ArrayList<>();
         String materialName = material.toString();
         
-        // Helmet enchantments
-        if (materialName.contains("HELMET")) {
+        // SWORDS - Combat enchantments
+        if (materialName.contains("SWORD")) {
+            rows.add(Arrays.asList(Enchantment.SHARPNESS, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.SMITE, Enchantment.KNOCKBACK));
+            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS, Enchantment.FIRE_ASPECT));
+            rows.add(Arrays.asList(Enchantment.LOOTING, Enchantment.SWEEPING_EDGE));
+        }
+        
+        // AXES - Tool + Combat enchantments
+        else if (materialName.contains("AXE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE, Enchantment.SHARPNESS));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH, Enchantment.SMITE));
+            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS));
+        }
+        
+        // PICKAXES - Mining enchantments
+        else if (materialName.contains("PICKAXE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        
+        // SHOVELS - Digging enchantments
+        else if (materialName.contains("SHOVEL")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        
+        // HOES - Farming enchantments
+        else if (materialName.contains("HOE")) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.FORTUNE));
+            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
+        }
+        
+        // BOWS - Ranged combat enchantments
+        else if (material == Material.BOW) {
+            rows.add(Arrays.asList(Enchantment.POWER, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.PUNCH, Enchantment.INFINITY));
+            rows.add(Arrays.asList(Enchantment.FLAME));
+        }
+        
+        // CROSSBOWS - Crossbow specific enchantments
+        else if (material == Material.CROSSBOW) {
+            rows.add(Arrays.asList(Enchantment.QUICK_CHARGE, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.MULTISHOT));
+            rows.add(Arrays.asList(Enchantment.PIERCING));
+        }
+        
+        // TRIDENTS - Trident specific enchantments
+        else if (material == Material.TRIDENT) {
+            rows.add(Arrays.asList(Enchantment.LOYALTY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.CHANNELING, Enchantment.IMPALING));
+            rows.add(Arrays.asList(Enchantment.RIPTIDE));
+        }
+        
+        // MACES - Mace specific enchantments (1.21+)
+        else if (material == Material.MACE) {
+            rows.add(Arrays.asList(Enchantment.DENSITY, Enchantment.UNBREAKING));
+            rows.add(Arrays.asList(Enchantment.BREACH, Enchantment.SMITE));
+            rows.add(Arrays.asList(Enchantment.WIND_BURST, Enchantment.BANE_OF_ARTHROPODS));
+        }
+        
+        // HELMETS - Head armor enchantments
+        else if (materialName.contains("HELMET")) {
             rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
             rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
             rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION, Enchantment.AQUA_AFFINITY));
             rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION, Enchantment.RESPIRATION));
         }
-        // Chestplate enchantments
+        
+        // CHESTPLATES - Chest armor enchantments
         else if (materialName.contains("CHESTPLATE")) {
             rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
             rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
             rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION));
             rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION));
         }
-        // Leggings enchantments
+        
+        // LEGGINGS - Leg armor enchantments
         else if (materialName.contains("LEGGINGS")) {
             rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
             rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
             rows.add(Arrays.asList(Enchantment.BLAST_PROTECTION));
             rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION));
         }
-        // Boots enchantments
+        
+        // BOOTS - Foot armor enchantments
         else if (materialName.contains("BOOTS")) {
             rows.add(Arrays.asList(Enchantment.PROTECTION, Enchantment.UNBREAKING));
             rows.add(Arrays.asList(Enchantment.FIRE_PROTECTION, Enchantment.THORNS));
@@ -246,70 +314,30 @@ public class EnhancedItemModificationGUI implements Listener {
             rows.add(Arrays.asList(Enchantment.PROJECTILE_PROTECTION, Enchantment.DEPTH_STRIDER));
             rows.add(Arrays.asList(Enchantment.FROST_WALKER, Enchantment.SOUL_SPEED));
         }
-        // Sword enchantments
-        else if (materialName.contains("SWORD")) {
-            rows.add(Arrays.asList(Enchantment.SHARPNESS, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.SMITE, Enchantment.KNOCKBACK));
-            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS, Enchantment.FIRE_ASPECT));
-            rows.add(Arrays.asList(Enchantment.LOOTING, Enchantment.SWEEPING_EDGE));
-        }
-        // Axe enchantments
-        else if (materialName.contains("AXE")) {
-            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.FORTUNE, Enchantment.SHARPNESS));
-            rows.add(Arrays.asList(Enchantment.SILK_TOUCH, Enchantment.SMITE));
-            rows.add(Arrays.asList(Enchantment.BANE_OF_ARTHROPODS));
-        }
-        // Pickaxe enchantments
-        else if (materialName.contains("PICKAXE")) {
-            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.FORTUNE));
-            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
-        }
-        // Shovel enchantments
-        else if (materialName.contains("SHOVEL")) {
-            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.FORTUNE));
-            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
-        }
-        // Hoe enchantments
-        else if (materialName.contains("HOE")) {
-            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.FORTUNE));
-            rows.add(Arrays.asList(Enchantment.SILK_TOUCH));
-        }
-        // Bow enchantments
-        else if (material == Material.BOW) {
-            rows.add(Arrays.asList(Enchantment.POWER, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.PUNCH, Enchantment.INFINITY));
-            rows.add(Arrays.asList(Enchantment.FLAME));
-        }
-        // Crossbow enchantments
-        else if (material == Material.CROSSBOW) {
-            rows.add(Arrays.asList(Enchantment.QUICK_CHARGE, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.MULTISHOT));
-            rows.add(Arrays.asList(Enchantment.PIERCING));
-        }
-        // Trident enchantments
-        else if (material == Material.TRIDENT) {
-            rows.add(Arrays.asList(Enchantment.LOYALTY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.CHANNELING, Enchantment.IMPALING));
-            rows.add(Arrays.asList(Enchantment.RIPTIDE));
-        }
-        // Mace enchantments
-        else if (material == Material.MACE) {
-            rows.add(Arrays.asList(Enchantment.DENSITY, Enchantment.UNBREAKING));
-            rows.add(Arrays.asList(Enchantment.BREACH, Enchantment.SMITE));
-            rows.add(Arrays.asList(Enchantment.WIND_BURST, Enchantment.BANE_OF_ARTHROPODS));
-        }
-        // Fishing Rod enchantments
+        
+        // FISHING RODS - Fishing enchantments
         else if (material == Material.FISHING_ROD) {
             rows.add(Arrays.asList(Enchantment.LUCK_OF_THE_SEA, Enchantment.UNBREAKING));
             rows.add(Arrays.asList(Enchantment.LURE));
         }
-        // Other enchantable items
-        else if (material == Material.SHIELD || material == Material.SHEARS || 
-                 material == Material.FLINT_AND_STEEL || material == Material.ELYTRA) {
+        
+        // SHIELDS - Shield enchantments
+        else if (material == Material.SHIELD) {
+            rows.add(Arrays.asList(Enchantment.UNBREAKING));
+        }
+        
+        // SHEARS - Shears enchantments
+        else if (material == Material.SHEARS) {
+            rows.add(Arrays.asList(Enchantment.EFFICIENCY, Enchantment.UNBREAKING));
+        }
+        
+        // FLINT AND STEEL - Fire starter enchantments
+        else if (material == Material.FLINT_AND_STEEL) {
+            rows.add(Arrays.asList(Enchantment.UNBREAKING));
+        }
+        
+        // ELYTRA - Flying enchantments
+        else if (material == Material.ELYTRA) {
             rows.add(Arrays.asList(Enchantment.UNBREAKING));
         }
         
@@ -448,7 +476,7 @@ public class EnhancedItemModificationGUI implements Listener {
         List<Enchantment> enchantments = new ArrayList<>();
         String materialName = material.toString();
         
-        // Sword enchantments
+        // Sword enchantments - Combat focused
         if (materialName.contains("SWORD")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.SHARPNESS, Enchantment.SMITE, Enchantment.BANE_OF_ARTHROPODS,
@@ -457,7 +485,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Axe enchantments (tools + some weapon enchants)
+        // Axe enchantments - Tool + Combat
         else if (materialName.contains("AXE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
@@ -466,7 +494,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Pickaxe enchantments
+        // Pickaxe enchantments - Mining focused
         else if (materialName.contains("PICKAXE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
@@ -474,7 +502,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Shovel enchantments
+        // Shovel enchantments - Digging focused
         else if (materialName.contains("SHOVEL")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
@@ -482,7 +510,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Hoe enchantments
+        // Hoe enchantments - Farming focused
         else if (materialName.contains("HOE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.EFFICIENCY, Enchantment.FORTUNE, Enchantment.SILK_TOUCH,
@@ -490,7 +518,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Bow enchantments
+        // Bow enchantments - Ranged combat
         else if (material == Material.BOW) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.POWER, Enchantment.PUNCH, Enchantment.FLAME,
@@ -498,7 +526,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Crossbow enchantments
+        // Crossbow enchantments - Crossbow specific
         else if (material == Material.CROSSBOW) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.QUICK_CHARGE, Enchantment.MULTISHOT, Enchantment.PIERCING,
@@ -506,7 +534,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Trident enchantments
+        // Trident enchantments - Trident specific
         else if (material == Material.TRIDENT) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.LOYALTY, Enchantment.CHANNELING, Enchantment.RIPTIDE,
@@ -514,7 +542,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Mace enchantments
+        // Mace enchantments - Mace specific (1.21+)
         else if (material == Material.MACE) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.DENSITY, Enchantment.BREACH, Enchantment.WIND_BURST,
@@ -523,7 +551,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Helmet enchantments
+        // Helmet enchantments - Head protection
         else if (materialName.contains("HELMET")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
@@ -532,7 +560,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Chestplate enchantments
+        // Chestplate enchantments - Chest protection
         else if (materialName.contains("CHESTPLATE")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
@@ -541,7 +569,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Leggings enchantments
+        // Leggings enchantments - Leg protection
         else if (materialName.contains("LEGGINGS")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
@@ -550,7 +578,7 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Boots enchantments
+        // Boots enchantments - Foot protection + movement
         else if (materialName.contains("BOOTS")) {
             enchantments.addAll(Arrays.asList(
                 Enchantment.PROTECTION, Enchantment.FIRE_PROTECTION, Enchantment.BLAST_PROTECTION,
@@ -560,15 +588,34 @@ public class EnhancedItemModificationGUI implements Listener {
             ));
         }
         
-        // Other items
-        else if (material == Material.SHIELD || material == Material.FISHING_ROD || 
-                 material == Material.SHEARS || material == Material.FLINT_AND_STEEL ||
-                 material == Material.ELYTRA) {
+        // Fishing Rod enchantments - Fishing specific
+        else if (material == Material.FISHING_ROD) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.LUCK_OF_THE_SEA, Enchantment.LURE,
+                Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Shield enchantments - Shield specific
+        else if (material == Material.SHIELD) {
             enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
-            
-            if (material == Material.FISHING_ROD) {
-                enchantments.addAll(Arrays.asList(Enchantment.LUCK_OF_THE_SEA, Enchantment.LURE));
-            }
+        }
+        
+        // Shears enchantments - Shears specific
+        else if (material == Material.SHEARS) {
+            enchantments.addAll(Arrays.asList(
+                Enchantment.EFFICIENCY, Enchantment.UNBREAKING, Enchantment.MENDING
+            ));
+        }
+        
+        // Flint and Steel enchantments - Fire starter specific
+        else if (material == Material.FLINT_AND_STEEL) {
+            enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
+        }
+        
+        // Elytra enchantments - Flying specific
+        else if (material == Material.ELYTRA) {
+            enchantments.addAll(Arrays.asList(Enchantment.UNBREAKING, Enchantment.MENDING));
         }
         
         return enchantments;
